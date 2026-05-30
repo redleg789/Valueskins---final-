@@ -1,0 +1,351 @@
+================================================================================
+                        VALUESKINS PROJECT STRUCTURE
+================================================================================
+
+START HERE: This is how the codebase flows from top to bottom.
+
+PROJECT ROOT
+|
++--- FRONTEND (What users see in the browser)
+|    |
+|    +-- frontend/src/app/
+|    |   └-- The actual pages users interact with
+|    |      +-- demo/instagram/    <- Creator & brand workflow on Instagram theme
+|    |      +-- demo/tiktok/       <- Creator & brand workflow on TikTok theme
+|    |      +-- demo/youtube/      <- Creator & brand workflow on YouTube theme
+|    |      └-- demo/linkedin/     <- Creator & brand workflow on LinkedIn theme
+|    |
+|    +-- frontend/src/components/
+|    |   └-- Reusable UI pieces (buttons, modals, cards)
+|    |
+|    +-- frontend/src/lib/
+|    |   └-- Logic that talks to backend
+|    |      +-- api.ts              <- Makes HTTP requests to backend
+|    |      +-- useDealSync.ts      <- Manages deal state (core data)
+|    |      └-- useFirebaseRoom.ts  <- Real-time notifications via Firebase
+|    |
+|    └-- frontend/src/types/
+|        └-- TypeScript types (what data looks like)
+|
++--- BACKEND (The engine - processes data, stores it, sends to frontend)
+|    |
+|    +-- CORE ENTRY POINTS (what handles requests)
+|    |   +-- backend/api_gateway/         <- Main entrance (all HTTP requests)
+|    |   +-- backend/auth_service/       <- Login/logout
+|    |   └-- backend/brand_api/          <- Special API for brands
+|    |
+|    +-- FEATURE SERVICES (handle specific business logic)
+|    |   +-- backend/marketplace_service/     <- Finding creators & brands
+|    |   +-- backend/matching_service/       <- Which creators match brands?
+|    |   +-- backend/contract_service/       <- Deal terms & contracts
+|    |   +-- backend/communities_service/    <- Creator communities
+|    |   +-- backend/reputation_service/     <- Creator ratings & trust
+|    |   +-- backend/notification_service/   <- Sending notifications
+|    |   +-- backend/persona_service/        <- Creator personas/profiles
+|    |   +-- backend/payment_service/        <- Payment processing
+|    |   └-- [8 more specialized services...]
+|    |
+|    +-- DATABASE SETUP
+|    |   +-- backend/migrations/        <- Scripts that create tables
+|    |   └-- Example: 001_create_users_table.sql
+|    |
+|    +-- SHARED CODE (used by multiple services)
+|    |   +-- backend/shared/            <- Common functions, types, utilities
+|    |   └-- Used to prevent code duplication
+|    |
+|    └-- Configuration
+|        +-- Cargo.toml, Cargo.lock     <- What libraries we use (Rust)
+|
++--- INFRASTRUCTURE (Where code runs)
+|    +-- kubernetes/          <- Container orchestration configs
+|    +-- infrastructure/      <- Server setup (AWS, etc.)
+|    +-- docker-compose.yml   <- Local development setup
+|    └-- Dockerfile           <- How to package the app
+|
++--- DOCUMENTATION
+|    +-- README.md                   <- Quick start guide
+|    +-- ARCHITECTURE_GUIDE.txt      <- You are here
+|    +-- SECURITY.md                 <- Security details
+|    +-- CLAUDE_DOS_AND_DONTS.md     <- Development best practices
+|    +-- UPDATED_FEATURES.md         <- What's new
+|    └-- docs/                       <- Detailed documentation
+|
+└--- CONFIG & ENV
+     +-- .env.example         <- Environment variables needed
+     +-- package.json         <- Node dependencies
+     +-- vercel.json          <- Frontend deploy config
+     └-- fly.toml             <- Backend deploy config
+
+================================================================================
+                           HOW DATA FLOWS
+================================================================================
+
+SCENARIO: Creator browses marketplace
+
+Step 1: User opens Instagram demo page
+        └-- Loads: frontend/src/app/demo/instagram/page.tsx
+
+Step 2: React needs creator list
+        └-- Calls: frontend/src/lib/api.ts (makes HTTP request)
+
+Step 3: Backend receives request
+        └-- Goes to: backend/api_gateway/ (main entrance)
+
+Step 4: API Gateway routes request
+        └-- Forwards to: backend/marketplace_service/
+
+Step 5: Marketplace service fetches data
+        └-- Queries: database tables (created by migrations/)
+
+Step 6: Data returned to api_gateway
+        └-- Sends back: JSON response to frontend
+
+Step 7: Frontend receives list
+        └-- React renders using components/
+        └-- User sees creators on screen
+
+================================================================================
+                      UNDERSTANDING EACH PART
+================================================================================
+
+FRONTEND: frontend/src/app/demo/instagram/page.tsx
+  What: Main React component showing creator/brand experience
+  Size: 4000+ lines
+  Contains:
+    - Marketplace view (browse creators)
+    - Deal room (negotiations happen here)
+    - Chat messaging
+    - Script editor (with version history)
+    - Payment breakdown
+    - Profile management
+  Uses:
+    - useDealSync.ts for state management
+    - api.ts for backend calls
+    - Firebase for real-time updates
+
+FRONTEND: frontend/src/lib/useDealSync.ts
+  What: Custom React hook managing deal state
+  Purpose: Centralized place for deal data and logic
+  Syncs with:
+    - localStorage (offline support)
+    - Firebase (real-time sync)
+    - BroadcastChannel (sync across browser tabs)
+  Key types:
+    - DealState (what a deal contains)
+    - ChatMessage (messages in chat)
+    - Campaign (brand campaign)
+
+FRONTEND: frontend/src/lib/api.ts
+  What: Makes HTTP requests to backend
+  Examples:
+    - GET /creators -> fetch creator list
+    - POST /deals -> create new deal
+    - PATCH /deals/123 -> update deal
+    - GET /campaigns -> fetch brand campaigns
+  Returns: JSON data that frontend displays
+
+BACKEND: api_gateway/
+  What: Main entry point for all HTTP requests
+  Routes requests to correct service:
+    - /creators -> marketplace_service
+    - /deals -> contract_service
+    - /auth -> auth_service
+    - /brands -> brand_api
+  Returns: Responses back to frontend
+
+BACKEND: marketplace_service/
+  What: Handles creator and brand discovery
+  Does:
+    - Returns list of creators
+    - Filters by skill, level, followers
+    - Calls matching_service to rank by match score
+  Queries: creators table, personas table
+  Returns: Creator lists with stats
+
+BACKEND: contract_service/
+  What: Manages deals and negotiations
+  Does:
+    - Creates new deals
+    - Handles offers and counter-offers
+    - Tracks deal state (proposal -> accepted -> completed)
+    - Manages contracts and deliverables
+  Calls: notification_service (sends "offer received" notifications)
+  Stores in: deals table, contracts table
+
+BACKEND: notification_service/
+  What: Sends notifications to users
+  Via: Firebase Messaging, Email, SMS
+  Examples:
+    - "Brand sent you an offer"
+    - "Creator approved your script"
+    - "Deal completed - payment released"
+
+BACKEND: shared/
+  What: Code used by multiple services
+  Contains:
+    - Error handling
+    - Database connection
+    - Logging
+    - Type definitions
+  Purpose: Don't repeat code
+
+BACKEND: migrations/
+  What: SQL scripts that set up database
+  How: Runs once when app starts
+  Examples:
+    - Create users table
+    - Create deals table
+    - Create notifications table
+  Rules: Never edit old migrations (create new ones)
+
+================================================================================
+                     FOLLOWING A FEATURE REQUEST
+================================================================================
+
+Example: "Let creators tip brands after deal completion"
+
+STEP 1: UNDERSTAND THE REQUIREMENT
+  What: Creator can send money to brand as tip
+  Where: Past deals screen
+  Data needed: amount, creator_id, brand_id, timestamp
+
+STEP 2: UPDATE DATA TYPES
+  File: backend/shared/ or frontend/src/types/
+  Add: TipPayment type with fields
+    - id (unique identifier)
+    - creator_id (who's tipping)
+    - brand_id (who receives)
+    - amount (in cents)
+    - created_at (when it happened)
+
+STEP 3: UPDATE DATABASE
+  File: backend/migrations/
+  Create: 010_create_tips_table.sql
+  Columns: id, creator_id, brand_id, amount, created_at
+
+STEP 4: FRONTEND CHANGES
+  File 1: frontend/src/app/demo/instagram/page.tsx
+    - Add "Tip" button in past deals section
+    - Add modal that asks for amount
+  File 2: frontend/src/lib/api.ts
+    - Add function to call: POST /tips
+  File 3: frontend/src/components/ (new)
+    - Create: TipModal component (reusable)
+
+STEP 5: BACKEND CHANGES
+  File 1: backend/contract_service/ (or new tip_service/)
+    - Handle: POST /tips endpoint
+    - Validate: creator and brand exist, amount > 0
+    - Store: tip in database
+  File 2: backend/notification_service/
+    - Send: "Creator tipped you $50!" notification
+  File 3: backend/api_gateway/
+    - Route: POST /tips to the service
+
+STEP 6: TEST IT
+  Test 1: Click tip button in frontend
+  Test 2: Modal appears and lets you enter amount
+  Test 3: Submit tip
+  Test 4: Check database has new tip record
+  Test 5: Brand receives notification
+
+================================================================================
+                        KEY CONCEPTS TO UNDERSTAND
+================================================================================
+
+DEAL: The core concept
+  What: One transaction between a creator and a brand
+  Lifecycle: proposal -> counter-offer -> accepted -> content_due -> completed
+  Contains: offer amount, script, deliverables, deadline, status
+  Stored in: useDealSync.ts (frontend) + database (backend)
+  Example: "Brand offered $5000, creator counter with $6000, both agreed at $5500"
+
+VALUESKIN: Creator's role/identity
+  What: A label for what kind of creator they are
+  Examples: "Software Engineer", "Fashion Influencer", "Chef", "DJ"
+  Purpose: Helps brands find the right creators
+  Rules: Creator can have multiple ValueSkins
+  Used for: Matching algorithm ranks creators with right skin
+
+SCRIPT NEGOTIATION: Back-and-forth editing
+  What: Creator and brand negotiate what creator will say
+  Three modes:
+    1. Non-negotiable: Brand locks script, creator must follow
+    2. Collaborative: Both can edit, both must approve
+    3. Creator freedom: Creator controls, brand just approves
+  Tracked: Every edit has timestamp, editor name, reason
+  Gated: Deal can't progress until both approve
+
+ESCROW: Payment protection
+  What: Money held by platform, not released immediately
+  Stages: 30% advance, 40% on upload, 30% on approval (optional)
+  Protection: If dispute, money stays held while investigating
+  Currently: Mocked (not real payment processing yet)
+
+FIREBASE: Real-time database
+  What: Stores notifications, chat messages, presence
+  Real-time: Changes sync instantly to all browser tabs
+  Currently used for: Notifications, chat, real-time updates
+  Alternative: Could use WebSocket + Postgres instead
+
+BroadcastChannel: Sync across browser tabs
+  What: When creator opens deal in two tabs, both see updates
+  How: JavaScript API for cross-tab communication
+  Example: Edit script in tab 1, tab 2 shows changes instantly
+
+================================================================================
+                        COMMON QUESTIONS ANSWERED
+================================================================================
+
+Q: Where do I change the creator list?
+A: backend/marketplace_service/ -> queries database
+
+Q: Where do I change what happens when deal is accepted?
+A: 1. frontend/src/app/demo/instagram/page.tsx (setDealRoomPhase function)
+   2. backend/contract_service/ (handle acceptance)
+
+Q: Where do I add a new field to a deal?
+A: 1. frontend/src/lib/useDealSync.ts (add to DealState type)
+   2. backend/migrations/ (add column to deals table)
+   3. backend/contract_service/ (read and write the field)
+   4. frontend/src/app/demo/instagram/page.tsx (display it)
+
+Q: Where do I send a notification?
+A: Call backend/notification_service/ from any service
+   -> Sends to Firebase
+   -> Frontend shows toast or bell icon
+
+Q: How do I deploy?
+A: Frontend: vercel.json config, push to GitHub -> auto deploys on Vercel
+   Backend: fly.toml config, push to GitHub -> auto deploys on Fly.io
+
+Q: How do I run this locally?
+A: docker-compose up -> starts frontend, backend, database locally
+
+Q: Where is the database?
+A: Uses PostgreSQL (or SQLite locally)
+   Tables created by: backend/migrations/
+   Data stored in: docker volume or AWS RDS (production)
+
+Q: Where do I see errors?
+A: Frontend: Browser console (F12)
+   Backend: Docker logs or Fly.io dashboard
+   Database: Check migrations ran successfully
+
+================================================================================
+                        READING ORDER
+================================================================================
+
+If you're new, read files in this order:
+
+1. README.md (quick overview)
+2. This file (ARCHITECTURE_GUIDE.txt - you're here)
+3. frontend/src/app/demo/instagram/page.tsx (main UI)
+4. frontend/src/lib/useDealSync.ts (data structure)
+5. backend/api_gateway/ (request routing)
+6. backend/marketplace_service/ (example service)
+7. backend/migrations/001_*.sql (database schema)
+8. SECURITY.md (important for production)
+9. docs/ (detailed documentation)
+
+================================================================================

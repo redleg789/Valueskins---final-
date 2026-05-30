@@ -1,0 +1,168 @@
+# Chaos Engineering - Implementation
+# Uses LitmusChaos or custom chaos operator
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-experiments
+  namespace: valueskins
+data:
+  # Experiment 1: Redis Failure
+  redis-failure.json: |
+    {
+      "apiVersion": "litmuschaos.io/v1alpha1",
+      "kind": "ChaosEngine",
+      "metadata": {
+        "name": "redis-failure",
+        "namespace": "valueskins"
+      },
+      "spec": {
+        "appinfo": {
+          "appns": "valueskins",
+          "applabel": "app=redis"
+        },
+        "chaosServiceAccount": "chaos-operator",
+        "experiments": [
+          {
+            "name": "pod-delete",
+            "spec": {
+              "components": {
+                "env": [
+                  {
+                    "name": "TOTAL_CHAOS_DURATION",
+                    "value": "300"
+                  },
+                  {
+                    "name": "CHAOS_INTERVAL",
+                    "value": "30"
+                  },
+                  {
+                    "name": "FORCE",
+                    "value": "false"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    }
+    
+  # Experiment 2: Network Latency
+  network-latency.json: |
+    {
+      "apiVersion": "litmuschaos.io/v1alpha1",
+      "kind": "ChaosEngine",
+      "metadata": {
+        "name": "network-latency",
+        "namespace": "valueskins"
+      },
+      "spec": {
+        "appinfo": {
+          "appns": "valueskins",
+          "applabel": "app=backend"
+        },
+        "chaosServiceAccount": "chaos-operator",
+        "experiments": [
+          {
+            "name": "network-latency"
+          }
+        ]
+      }
+    }
+    
+  # Experiment 3: High CPU Load
+  cpu-stress.json: |
+    {
+      "apiVersion": "litmuschaos.io/v1alpha1",
+      "kind": "ChaosEngine",
+      "metadata": {
+        "name": "cpu-stress",
+        "namespace": "valueskins"
+      },
+      "spec": {
+        "appinfo": {
+          "appns": "valueskins",
+          "applabel": "app=backend"
+        },
+        "experiments": [
+          {
+            "name": "pod-stress"
+          }
+        ]
+      }
+    }
+
+---
+# Chaos ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-operator
+  namespace: valueskins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: chaos-operator
+  namespace: valueskins
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: chaos-operator
+  namespace: valueskins
+subjects:
+- kind: ServiceAccount
+  name: chaos-operator
+roleRef:
+  kind: Role
+  name: chaos-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Chaos Dashboard (simple web UI)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-dashboard
+  namespace: valueskins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-dashboard
+  template:
+    metadata:
+      labels:
+        app: chaos-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: valueskins/chaos-dashboard:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        - name: ALERT_WEBHOOK_URL
+          value: ""
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chaos-dashboard
+  namespace: valueskins
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: chaos-dashboard

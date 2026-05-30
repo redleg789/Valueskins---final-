@@ -1,0 +1,488 @@
+# PostgreSQL 16 — Primary + Read Replica
+# Provides the services `postgres-primary` and `postgres-replica` that
+# pgbouncer.yaml expects. Do NOT point application code directly at these
+# services; always go through PgBouncer for connection pooling.
+#
+# HA notes:
+#  - Primary: single StatefulSet pod with WAL replication to replica.
+#  - Replica: 1+ streaming-replication replicas for read-scaling.
+#  - Failover: handled externally by Patroni or the cloud provider's managed
+#    Postgres (Cloud SQL, Aurora, Azure Database for PostgreSQL). This file is
+#    the self-managed Kubernetes equivalent.
+#
+# Secrets: uses `postgres-secret` (create via CI/CD or External Secrets Operator).
+#   kubectl create secret generic postgres-secret -n valueskins \
+#     --from-literal=POSTGRES_PASSWORD="$(openssl rand -base64 32)" \
+#     --from-literal=REPLICATION_PASSWORD="$(openssl rand -base64 32)"
+#
+# TLS: uses `postgres-tls-ca` secret referenced by pgbouncer.yaml.
+#   kubectl create secret generic postgres-tls-ca -n valueskins \
+#     --from-file=ca.crt=/path/to/ca.crt
+
+---
+# 1. ConfigMap: postgres.conf tuning for production workload
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: valueskins
+data:
+  postgresql.conf: |
+    # Connection settings
+    max_connections = 200            # PgBouncer sees this as max; set conservatively
+    superuser_reserved_connections = 5
+
+    # Memory (adjust based on node RAM — assumes 8GB node)
+    shared_buffers     = 2GB         # 25% of RAM
+    effective_cache_size = 6GB       # 75% of RAM
+    work_mem           = 16MB        # per-sort/hash op
+    maintenance_work_mem = 512MB     # VACUUM, index builds
+
+    # WAL (write-ahead log) — durability + replication
+    wal_level          = replica     # enables streaming replication
+    max_wal_senders    = 5           # primary → replicas
+    wal_keep_size      = 1024MB      # retain WAL for lagging replicas
+    synchronous_commit = on          # durability: no data loss
+    checkpoint_completion_target = 0.9
+    wal_compression    = on          # reduce WAL bandwidth
+
+    # Query performance
+    random_page_cost   = 1.1         # SSDs: cost close to seq scan
+    effective_io_concurrency = 200   # SSD IOPS
+    default_statistics_target = 100
+    enable_partitionwise_join = on
+    enable_partitionwise_aggregate = on
+
+    # Logging
+    log_min_duration_statement = 100  # Log queries > 100ms (slow query log)
+    log_checkpoints = on
+    log_connections = off             # avoid log spam at Meta scale
+    log_disconnections = off
+    log_line_prefix = '%t [%p]: user=%u,db=%d,app=%a,client=%h '
+    log_timezone = 'UTC'
+
+    # Autovacuum — prevent table bloat
+    autovacuum_max_workers = 4
+    autovacuum_naptime = 30s
+    autovacuum_vacuum_cost_limit = 800
+
+    # Replication slots (for logical replication / CDC)
+    max_replication_slots = 10
+
+    # SSL
+    ssl = on
+    ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'
+    ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'
+
+  pg_hba.conf: |
+    # TYPE  DATABASE   USER            ADDRESS        METHOD
+    # Allow local connections
+    local   all        all                            trust
+    # Allow replication user from replica pods
+    host    replication replicator     10.0.0.0/8    scram-sha-256
+    # Allow app connections via PgBouncer
+    host    all        valueskins      10.0.0.0/8    scram-sha-256
+    # Allow superuser from cluster
+    host    all        postgres        10.0.0.0/8    scram-sha-256
+
+  init-replica.sh: |
+    #!/bin/bash
+    # Run inside the replica pod init container to bootstrap streaming replication
+    set -e
+    until pg_isready -h postgres-primary-0.postgres-primary -U postgres; do
+      echo "Waiting for primary..."
+      sleep 2
+    done
+    PGPASSWORD="$REPLICATION_PASSWORD" pg_basebackup \
+      -h postgres-primary-0.postgres-primary \
+      -U replicator \
+      -D /var/lib/postgresql/data \
+      -P --wal-method=stream
+    echo "primary_conninfo = 'host=postgres-primary-0.postgres-primary user=replicator password=$REPLICATION_PASSWORD'" >> /var/lib/postgresql/data/postgresql.auto.conf
+    touch /var/lib/postgresql/data/standby.signal
+
+---
+# 2. Secret placeholder (must be populated via CI/CD — never hardcode passwords)
+# kubectl create secret generic postgres-secret -n valueskins \
+#   --from-literal=POSTGRES_PASSWORD="..." \
+#   --from-literal=REPLICATION_PASSWORD="..."
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+  namespace: valueskins
+type: Opaque
+# Data populated via CI/CD or External Secrets Operator
+
+---
+# 3. StatefulSet: PostgreSQL primary
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-primary
+  namespace: valueskins
+  labels:
+    app: postgres
+    role: primary
+spec:
+  serviceName: postgres-primary
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+      role: primary
+  template:
+    metadata:
+      labels:
+        app: postgres
+        role: primary
+    spec:
+      # Prefer nodes with SSD storage
+      nodeSelector:
+        storage-type: ssd
+
+      initContainers:
+      # Create replication user on first boot
+      - name: init-db
+        image: postgres:16-alpine
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: REPLICATION_PASSWORD
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Only run on first boot (data dir empty)
+          if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+            initdb -D /var/lib/postgresql/data
+            # Create replication user
+            echo "CREATE USER replicator REPLICATION LOGIN PASSWORD '$REPLICATION_PASSWORD';" > /var/lib/postgresql/data/init.sql
+            # Create app user
+            echo "CREATE USER valueskins WITH PASSWORD '$POSTGRES_PASSWORD';" >> /var/lib/postgresql/data/init.sql
+            echo "CREATE DATABASE valueskins OWNER valueskins;" >> /var/lib/postgresql/data/init.sql
+          fi
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        imagePullPolicy: IfNotPresent
+
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: valueskins
+        - name: POSTGRES_USER
+          value: postgres
+        - name: PGDATA
+          value: /var/lib/postgresql/data
+
+        ports:
+        - name: postgres
+          containerPort: 5432
+
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+          readOnly: true
+        - name: postgres-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+          readOnly: true
+
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2000m"
+          limits:
+            memory: "8Gi"
+            cpu: "4000m"
+
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres", "-d", "valueskins"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres", "-d", "valueskins"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 70   # postgres user in alpine
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+
+      volumes:
+      - name: postgres-config
+        configMap:
+          name: postgres-config
+
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 500Gi   # Adjust for expected data volume
+      storageClassName: fast-ssd
+
+---
+# 4. Service: postgres-primary (write endpoint used by PgBouncer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-primary
+  namespace: valueskins
+  labels:
+    app: postgres
+    role: primary
+spec:
+  clusterIP: None   # Headless — StatefulSet pod DNS: postgres-primary-0.postgres-primary
+  selector:
+    app: postgres
+    role: primary
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+
+---
+# 5. StatefulSet: PostgreSQL read replica
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+  namespace: valueskins
+  labels:
+    app: postgres
+    role: replica
+spec:
+  serviceName: postgres-replica
+  replicas: 2   # 2 read replicas for horizontal read scaling
+  selector:
+    matchLabels:
+      app: postgres
+      role: replica
+  template:
+    metadata:
+      labels:
+        app: postgres
+        role: replica
+    spec:
+      nodeSelector:
+        storage-type: ssd
+
+      # Spread replicas across different nodes than the primary
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: postgres
+                role: primary
+            topologyKey: kubernetes.io/hostname
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: postgres
+                  role: replica
+              topologyKey: kubernetes.io/hostname
+
+      initContainers:
+      # Bootstrap replica from primary using pg_basebackup
+      - name: bootstrap-replica
+        image: postgres:16-alpine
+        env:
+        - name: REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: REPLICATION_PASSWORD
+        command: ["/bin/sh", "/scripts/init-replica.sh"]
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-scripts
+          mountPath: /scripts
+          readOnly: true
+
+      containers:
+      - name: postgres
+        image: postgres:16-alpine
+        imagePullPolicy: IfNotPresent
+
+        env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data
+
+        ports:
+        - name: postgres
+          containerPort: 5432
+
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+          limits:
+            memory: "8Gi"
+            cpu: "2000m"
+
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 70
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+
+      volumes:
+      - name: postgres-scripts
+        configMap:
+          name: postgres-config
+          items:
+          - key: init-replica.sh
+            path: init-replica.sh
+            mode: 0755
+
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 500Gi
+      storageClassName: fast-ssd
+
+---
+# 6. Service: postgres-replica (read endpoint used by PgBouncer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-replica
+  namespace: valueskins
+  labels:
+    app: postgres
+    role: replica
+spec:
+  # Not headless — load-balance across replicas for reads
+  selector:
+    app: postgres
+    role: replica
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+# 7. PodDisruptionBudget: never take down all replicas at once
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-pdb
+  namespace: valueskins
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: postgres
+
+---
+# 8. NetworkPolicy: only PgBouncer may connect to Postgres
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-network-policy
+  namespace: valueskins
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes: [Ingress]
+  ingress:
+  # PgBouncer connection pooler only
+  - from:
+    - podSelector:
+        matchLabels:
+          app: pgbouncer
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow replica → primary replication
+  - from:
+    - podSelector:
+        matchLabels:
+          app: postgres
+          role: replica
+    ports:
+    - protocol: TCP
+      port: 5432
+
+---
+# 9. ServiceMonitor: Prometheus metrics via postgres_exporter sidecar
+# Add a postgres_exporter container to the StatefulSets above in production.
+# This ServiceMonitor assumes the exporter exposes port 9187.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-monitor
+  namespace: valueskins
+  labels:
+    app: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  endpoints:
+  - port: postgres
+    interval: 30s
+    path: /metrics

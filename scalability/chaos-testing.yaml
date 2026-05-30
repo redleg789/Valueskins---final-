@@ -1,0 +1,74 @@
+# Chaos Engineering Tests
+# Test failure scenarios before they happen in production
+
+# Test 1: Redis Failure
+- name: redis-failure
+  description: "Simulate Redis going down"
+  chaosType: pod-kill
+  selector:
+    app: redis
+  duration: 5m
+  expected: Service continues with degraded performance
+  
+# Test 2: Database Failover
+- name: database-failover
+  description: "Simulate primary DB failover"
+  chaosType: pod-kill
+  selector:
+    app: pgbouncer
+  duration: 2m
+  expected: Auto-failover to replica
+  
+# Test 3: Network Partition
+- name: network-partition
+  description: "Simulate network issues between services"
+  chaosType: network-latency
+  selector:
+    app: backend
+  delay: 500ms
+  duration: 5m
+  expected: Graceful degradation
+  
+# Test 4: Pod Death
+- name: pod-death
+  description: "Simulate backend pod crash"
+  chaosType: pod-kill
+  selector:
+    app: backend
+  count: 5
+  duration: 5m
+  expected: HPA scales up, service continues
+  
+# Test 5: High Load
+- name: high-load
+  description: "Simulate sudden traffic spike"
+  chaosType: stress
+  selector:
+    app: backend
+  cpu: 200%
+  memory: 1GB
+  duration: 10m
+  expected: Auto-scale to handle load
+  
+# Test 6: Connection Exhaustion
+- name: connection-exhaustion
+  description: "Simulate DB connection exhaustion"
+  chaosType: resource exhaustion
+  resource: connections
+  limit: 50%
+  duration: 5m
+  expected: Circuit breaker activates
+  
+# Run chaos experiments
+chaosExperiments:
+  schedule: "0 2 * * *"  # 2 AM daily
+  simultaneous: 2       # Max 2 concurrent
+  
+# Monitoring during chaos
+metrics:
+  - latency_p50
+  - latency_p95
+  - error_rate
+  - success_rate
+  - cpu_usage
+  - memory_usage

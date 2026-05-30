@@ -1,0 +1,133 @@
+# Kibana — Log visualization and monitoring dashboard
+# Connected to Elasticsearch for searching/filtering logs by:
+# - correlation_id (trace a request across all services)
+# - service name (filter to one microservice)
+# - log level (ERROR, WARN, INFO, DEBUG)
+# - time range
+# - user_id (find all actions by a specific user)
+# - HTTP status code, method, path
+#
+# Access controlled via Elasticsearch RBAC:
+# - Platform Engineers: full access (all indices, all fields)
+# - Service Owners: read-only for their service's logs
+# - On-Call: read-only for ERROR/WARN across all services
+# - No access to raw PII fields (masked at Fluentd layer)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: logging
+  labels:
+    app: kibana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:8.13.0
+          ports:
+            - containerPort: 5601
+              name: http
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: '["https://elasticsearch.logging.svc.cluster.local:9200"]'
+            - name: ELASTICSEARCH_USERNAME
+              value: kibana_system
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-credentials
+                  key: kibana_password
+            - name: SERVER_BASEPATH
+              value: /logs
+            - name: XPACK_SECURITY_ENABLED
+              value: "true"
+            - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-encryption
+                  key: key
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /logs/api/status
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: logging
+spec:
+  selector:
+    app: kibana
+  ports:
+    - port: 5601
+      targetPort: http
+---
+# RBAC: Elasticsearch roles for log access control
+# Applied via Elasticsearch API at cluster setup
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-rbac
+  namespace: logging
+data:
+  roles.json: |
+    {
+      "platform_engineer": {
+        "cluster": ["monitor"],
+        "indices": [
+          {
+            "names": ["valueskins-logs-*"],
+            "privileges": ["read", "view_index_metadata"],
+            "field_security": {
+              "grant": ["*"]
+            }
+          }
+        ]
+      },
+      "service_owner": {
+        "cluster": ["monitor"],
+        "indices": [
+          {
+            "names": ["valueskins-logs-*"],
+            "privileges": ["read"],
+            "query": "{\"match\": {\"kubernetes.labels.app\": \"${metadata.service}\"}}",
+            "field_security": {
+              "grant": ["*"],
+              "except": ["client_ip"]
+            }
+          }
+        ]
+      },
+      "oncall_readonly": {
+        "cluster": ["monitor"],
+        "indices": [
+          {
+            "names": ["valueskins-logs-*"],
+            "privileges": ["read"],
+            "query": "{\"terms\": {\"level\": [\"ERROR\", \"WARN\"]}}",
+            "field_security": {
+              "grant": ["timestamp", "level", "service", "correlation_id", "method", "path", "status", "duration_ms", "message"],
+              "except": ["client_ip", "user_id", "query"]
+            }
+          }
+        ]
+      }
+    }

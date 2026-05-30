@@ -1,0 +1,166 @@
+# docker-compose.yml - Local dev with full scalability
+# Run with: docker-compose -f scalability/docker-compose.yml up -d
+
+services:
+  # PostgreSQL with read replica
+  postgres-primary:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: valueskins
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: valueskins
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_primary:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valueskins"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  postgres-replica:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: valueskins
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: valueskins
+    ports:
+      - "5433:5432"
+    command: >
+      postgres
+      -cwal_level=replica
+      -cshared_buffers=256MB
+      -cmax_connections=500
+    volumes:
+      - postgres_replica:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U valueskins"]
+
+  # PgBouncer connection pooling
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    environment:
+      DATABASE_URL: "postgres://valueskins:password@postgres-primary:5432/valueskins"
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
+      MIN_POOL_SIZE: 10
+      RESERVE_POOL_SIZE: 20
+      MAX_DB_CONNECTIONS: 200
+      MAX_USER_CONNECTIONS: 200
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Redis cluster
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+  # Rust Backend
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      DATABASE_URL: "postgres://valueskins:password@pgbouncer:5432/valueskins"
+      DATABASE_POOL_SIZE: "100"
+      DATABASE_REPLICA_URL: "postgres://valueskins:password@postgres-replica:5432/valueskins"
+      REDIS_URL: "redis://redis:6379"
+      REDIS_POOL_SIZE: "100"
+      RUST_LOG: "info,api_gateway=debug"
+      RUST_BACKTRACE: "1"
+      WEBSOCKET_MAX_CONNECTIONS: "10000"
+      RATE_LIMIT_ENABLED: "true"
+      READ_REPLICA_ENABLED: "true"
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 5s
+
+  # Frontend - connects to backend instead of Firebase
+  frontend:
+    build:
+      context: ../../nexus/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8080"
+      NEXT_PUBLIC_WS_URL: "ws://localhost:8081"
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "${NEXT_PUBLIC_FIREBASE_PROJECT_ID}"
+      NEXT_PUBLIC_FIREBASE_API_KEY: "${NEXT_PUBLIC_FIREBASE_API_KEY}"
+      NODE_ENV: production
+    depends_on:
+      - backend
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v2.51
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    profiles:
+      - monitoring
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.4
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    profiles:
+      - monitoring
+
+volumes:
+  postgres_primary:
+  postgres_replica:
+  redis_data:

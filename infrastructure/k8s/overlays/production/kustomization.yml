@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: valueskins
+
+resources:
+  - ../../services/api-gateway/deployment.yml
+  - ../../services/api-gateway/canary.yml
+  - ../../services/api-gateway/config.yml
+  - ../../services/frontend/deployment.yml
+  - ../../platform/postgres/statefulset.yml
+  - ../../platform/redis/deployment.yml
+  - ../../platform/monitoring/prometheus.yml
+  - ../../platform/istio/gateway.yml
+
+patches:
+  # Production: full resources, high availability
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 5

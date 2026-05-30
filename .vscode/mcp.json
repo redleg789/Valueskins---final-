@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "vexp": {
+      "type": "stdio",
+      "command": "/Users/sakethvelamuri/.nvm/versions/node/v22.21.1/bin/node",
+      "args": [
+        "/Users/sakethvelamuri/.vscode/extensions/vexp.vexp-vscode-2.0.14-darwin-arm64/dist/mcp-server.cjs"
+      ],
+      "env": {
+        "VEXP_WORKSPACE": "/Users/sakethvelamuri/Desktop/Startups. /Short term/Valueskins."
+      }
+    }
+  }
+}

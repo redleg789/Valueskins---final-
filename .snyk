@@ -1,0 +1,23 @@
+# Snyk Configuration
+version: v1.1343.0
+
+# Scan on every push
+auto-scan: true
+
+# Vulnerability thresholds
+severity-threshold: high
+
+# Ignore rules (none - fail on high/critical)
+ignore: {}
+
+# License policy
+license-policy:
+  severities:
+    high: deny
+    medium: warn
+    low: inform
+
+# Report settings
+report:
+  format: json
+  output: snyk-report.json

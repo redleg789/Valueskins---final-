@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(6, 182, 212, 0.1));
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+        }
+
+        .amount {
+            font-size: 64px;
+            font-weight: 800;
+            color: #22c55e;
+            margin: 24px 0;
+        }
+
+        p {
+            color: #a1a1aa;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            color: #71717a;
+            font-size: 14px;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="logo">Valueskins</div>
+        <div class="card">
+            <h1>Deal completed! 💰</h1>
+            <p>Congratulations! Your work with <strong style="color: white;">{{brand}}</strong> has been approved.</p>
+            <div class="amount">${{amount}}</div>
+            <p>The payment has been released to your wallet.</p>
+        </div>
+        <div class="footer">© 2026 Valueskins</div>
+    </div>
+</body>
+
+</html>

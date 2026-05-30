@@ -1,0 +1,29 @@
+# CODEOWNERS
+# All PRs require at least one review from the relevant owner.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: engineering lead reviews everything
+*                                   @sakethvelamuri
+
+# Backend Rust services
+/backend/**                         @sakethvelamuri
+
+# Frontend
+/frontend/**                        @sakethvelamuri
+
+# Infrastructure & Kubernetes — require infra owner sign-off
+/kubernetes/**                      @sakethvelamuri
+/infrastructure/**                  @sakethvelamuri
+/docker-compose.yml                 @sakethvelamuri
+
+# CI/CD pipelines — high-risk: require explicit approval
+/.github/workflows/**              @sakethvelamuri
+
+# Security-sensitive files — always require owner review
+/SECURITY.md                        @sakethvelamuri
+/backend/migrations/**              @sakethvelamuri
+/.env.example                       @sakethvelamuri
+/backend/api_gateway/src/middleware/auth.rs     @sakethvelamuri
+/backend/api_gateway/src/middleware/rate_limit.rs @sakethvelamuri
+/backend/shared/src/refresh_tokens.rs           @sakethvelamuri
+/backend/shared/src/pii_audit.rs                @sakethvelamuri

@@ -1,0 +1,293 @@
+# ValueSkins Ingress Rules
+# Routes external traffic to API, marketplace, and static assets
+# Handles: SSL/TLS, compression, rate limiting, WAF rules, caching
+
+---
+# 1. TLS: cert-manager provisions the Secret automatically at deploy time.
+# The Ingress annotation `cert-manager.io/cluster-issuer: letsencrypt-prod`
+# triggers cert-manager to create the `valueskins-tls-cert` Secret.
+# Never commit real cert data or placeholder base64 to source control.
+#
+# To provision manually for staging/testing:
+#   kubectl create secret tls valueskins-tls-cert \
+#     --cert=path/to/tls.crt --key=path/to/tls.key -n valueskins
+#
+# Verify cert is live:
+#   kubectl get certificate -n valueskins
+#   kubectl describe secret valueskins-tls-cert -n valueskins
+
+---
+# 2. ConfigMap: WAF rules (ModSecurity)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valueskins-waf-rules
+  namespace: valueskins
+data:
+  modsecurity-config: |
+    # Enable ModSecurity
+    SecRuleEngine On
+
+    # SQL Injection detection
+    SecRule ARGS|HEADERS|BODY "@rx (?:union|select|insert|update|delete|drop|create|alter)" \
+      "id:1000,phase:2,deny,status:403,msg:'SQL Injection Attempt'"
+
+    # XSS detection
+    SecRule ARGS|HEADERS "@rx <script|javascript:|onerror=|onload=" \
+      "id:1001,phase:2,deny,status:403,msg:'XSS Attempt'"
+
+    # Path traversal
+    SecRule ARGS|HEADERS "@rx \.\./|\.\.%2f|..\\|..%5c" \
+      "id:1002,phase:2,deny,status:403,msg:'Path Traversal Attempt'"
+
+    # Large request body (potential DoS)
+    SecRule REQUEST_LENGTH "@gt 10485760" \
+      "id:1003,phase:1,deny,status:413,msg:'Request Body Too Large'"
+
+    # Log all denied requests
+    SecDefaultAction "phase:2,log,auditlog"
+
+---
+# 3. ConfigMap: Rate limiting rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valueskins-rate-limit
+  namespace: valueskins
+data:
+  rate-limits: |
+    # Global: 1000 req/sec max
+    limit_req_zone $remote_addr zone=api_global:10m rate=1000r/s;
+
+    # Per IP: 100 req/sec (prevent single IP from consuming all quota)
+    limit_req_zone $remote_addr zone=api_per_ip:10m rate=100r/s;
+
+    # Per authenticated user: 500 req/sec (logged-in users get higher limit)
+    limit_req_zone $http_authorization zone=api_per_user:10m rate=500r/s;
+
+    # Auth endpoint (strict): 10 req/min per IP (brute force protection)
+    limit_req_zone $remote_addr zone=auth_strict:10m rate=10r/m;
+
+    # Marketplace endpoint: 50 req/sec (high volume but controlled)
+    limit_req_zone $remote_addr zone=marketplace:10m rate=50r/s;
+
+---
+# 4. Ingress: route traffic to ValueSkins services
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: valueskins-ingress
+  namespace: valueskins
+  annotations:
+    # Use NGINX ingress class
+    kubernetes.io/ingress.class: nginx
+
+    # SSL/TLS
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+      more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Permissions-Policy: geolocation=(), microphone=(), camera=()";
+
+    # Compression
+    nginx.ingress.kubernetes.io/enable-compression: "true"
+    nginx.ingress.kubernetes.io/compression-level: "5"
+    nginx.ingress.kubernetes.io/compression-types: "application/json,text/plain,text/css,application/javascript"
+
+    # Rate limiting (global)
+    nginx.ingress.kubernetes.io/limit-rps: "1000"
+    nginx.ingress.kubernetes.io/limit-connections: "100"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+    # Buffering for large responses
+    nginx.ingress.kubernetes.io/proxy-body-size: "128m"
+
+    # Health check path
+    nginx.ingress.kubernetes.io/health-check-path: "/health/ready"
+    nginx.ingress.kubernetes.io/health-check-interval-seconds: "10"
+    nginx.ingress.kubernetes.io/health-check-threshold: "3"
+
+    # Enable metrics
+    nginx.ingress.kubernetes.io/enable-metrics: "true"
+    nginx.ingress.kubernetes.io/metrics-per-host: "true"
+
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://valueskins.io,https://*.valueskins.io"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Content-Type,Authorization,X-Correlation-ID"
+
+spec:
+  ingressClassName: nginx
+
+  # TLS certificates
+  tls:
+  - hosts:
+    - "valueskins.api.valueskins.io"
+    - "api.valueskins.io/valueskins"
+    - "marketplace.valueskins.io"
+    secretName: valueskins-tls-cert
+
+  rules:
+  # 1. API routes
+  - host: "valueskins.api.valueskins.io"
+    http:
+      paths:
+      # Auth endpoints (strict rate limiting)
+      - path: /v1/auth(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: valueskins-matching
+            port:
+              number: 80
+        annotations:
+          nginx.ingress.kubernetes.io/limit-rps: "10"  # 10 req/sec per IP for auth
+
+      # Marketplace endpoints (moderate rate limiting)
+      - path: /v1/marketplace(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: valueskins-marketplace
+            port:
+              number: 80
+        annotations:
+          nginx.ingress.kubernetes.io/limit-rps: "50"
+
+      # Matching endpoints (high throughput)
+      - path: /v1/matching(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: valueskins-matching
+            port:
+              number: 80
+        annotations:
+          nginx.ingress.kubernetes.io/limit-rps: "500"
+
+      # Default catch-all
+      - path: /v1(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: valueskins-matching
+            port:
+              number: 80
+
+  # 2. Marketplace routes
+  - host: "marketplace.valueskins.io"
+    http:
+      paths:
+      - path: /(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: valueskins-marketplace
+            port:
+              number: 80
+
+---
+# 5. NetworkPolicy: restrict traffic to NGINX ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nginx-ingress-network-policy
+  namespace: ingress-nginx
+spec:
+  podSelector:
+    matchLabels:
+      app: nginx-ingress
+  policyTypes:
+  - Ingress
+  - Egress
+
+  # Allow ingress from external (port 80, 443)
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+
+  # Allow egress to Instagram pods
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: instagram
+    ports:
+    - protocol: TCP
+      port: 8080
+
+  # Allow egress to DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# 6. NGINX backend defaults (applies to all backends in cluster)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-backend-config
+  namespace: ingress-nginx
+data:
+  # Upstream balancing: least connections (recommended for long-lived connections)
+  upstream-hash-by: "$remote_addr"
+  upstream-least-conn: "true"
+
+  # Connection pooling
+  upstream-keepalive-connections: "32"
+  upstream-keepalive-requests: "100"
+  upstream-keepalive-timeout: "60"
+
+  # Fail-over settings
+  upstream-fail-timeout: "10s"
+  upstream-max-fails: "3"
+  upstream-next-upstream: "error timeout invalid_header http_500 http_502 http_503 http_504"
+  upstream-next-upstream-tries: "2"
+  upstream-next-upstream-timeout: "30s"
+
+  # Caching headers
+  add-headers: "ingress-nginx/response-cache-headers"
+
+---
+# 7. ConfigMap: response cache headers
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: response-cache-headers
+  namespace: ingress-nginx
+data:
+  X-Cache-Control: |
+    # Cache API responses based on endpoint
+    # GET /v1/matching/* → 5 min cache
+    # GET /v1/marketplace/* → 1 min cache
+    # POST/PUT/DELETE → no cache
+    location ~ ^/v1/matching {
+      add_header Cache-Control "public, max-age=300, s-maxage=300";
+    }
+    location ~ ^/v1/marketplace/search {
+      add_header Cache-Control "public, max-age=60, s-maxage=60";
+    }
+    location ~ ^/v1/(auth|deals) {
+      add_header Cache-Control "private, no-cache, no-store, must-revalidate";
+    }

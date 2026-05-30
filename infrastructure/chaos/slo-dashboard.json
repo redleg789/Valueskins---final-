@@ -1,0 +1,50 @@
+{
+  "title": "Valueskins SRE Dashboard",
+  "description": "Four Golden Signals + SLO Error Budget tracking",
+  "panels": [
+    {
+      "title": "Error Budget Remaining (SLO: 99.9%)",
+      "type": "gauge",
+      "query": "1 - (sum(rate(http_requests_total{namespace='valueskins',status=~'5..'}[30d])) / sum(rate(http_requests_total{namespace='valueskins'}[30d]))) - 0.999"
+    },
+    {
+      "title": "Request Rate (Traffic)",
+      "type": "graph",
+      "query": "sum(rate(http_requests_total{namespace='valueskins'}[1m])) by (service)"
+    },
+    {
+      "title": "Error Rate",
+      "type": "graph",
+      "query": "sum(rate(http_requests_total{namespace='valueskins',status=~'5..'}[5m])) by (service) / sum(rate(http_requests_total{namespace='valueskins'}[5m])) by (service) * 100"
+    },
+    {
+      "title": "P50 / P95 / P99 Latency",
+      "type": "graph",
+      "queries": [
+        "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace='valueskins'}[5m])) by (le, service))",
+        "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace='valueskins'}[5m])) by (le, service))",
+        "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace='valueskins'}[5m])) by (le, service))"
+      ]
+    },
+    {
+      "title": "CPU Saturation",
+      "type": "graph",
+      "query": "avg(rate(container_cpu_usage_seconds_total{namespace='valueskins'}[5m])) by (pod) / avg(kube_pod_container_resource_limits{namespace='valueskins',resource='cpu'}) by (pod) * 100"
+    },
+    {
+      "title": "Memory Saturation",
+      "type": "graph",
+      "query": "avg(container_memory_working_set_bytes{namespace='valueskins'}) by (pod) / avg(kube_pod_container_resource_limits{namespace='valueskins',resource='memory'}) by (pod) * 100"
+    },
+    {
+      "title": "Canary vs Stable Error Rate",
+      "type": "graph",
+      "query": "sum(rate(http_requests_total{namespace='valueskins',status=~'5..'}[5m])) by (track) / sum(rate(http_requests_total{namespace='valueskins'}[5m])) by (track) * 100"
+    },
+    {
+      "title": "Active Pods by Service",
+      "type": "stat",
+      "query": "count(kube_pod_status_phase{namespace='valueskins',phase='Running'}) by (label_app)"
+    }
+  ]
+}

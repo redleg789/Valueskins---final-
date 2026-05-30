@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: valueskins-api
+    runtime: rust
+    plan: free
+    buildCommand: "cd backend && cargo build --release -p api_gateway"
+    startCommand: "./target/release/api_gateway"
+    envVars:
+      - key: RUST_LOG
+        value: info
+      - key: DATABASE_URL
+        sync: false
+    autoDeploy: true

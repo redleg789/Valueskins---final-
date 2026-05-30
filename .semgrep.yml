@@ -1,0 +1,42 @@
+rules:
+  - id: no-hardcoded-secrets
+    pattern-either:
+      - pattern: $X = "password = ..."
+      - pattern: $X = "api_key = ..."
+      - pattern: $X = "secret = ..."
+    message: Hardcoded secret detected
+    languages: [python, javascript, typescript, rust, go]
+    severity: CRITICAL
+
+  - id: sql-injection-risk
+    pattern: sql_query($ARG)
+    pattern-not: sqlx::query($ARG)
+    message: Potential SQL injection - use parameterized queries
+    languages: [rust, python, javascript]
+    severity: HIGH
+
+  - id: no-console-log-secrets
+    pattern-either:
+      - pattern: console.log(..., $SECRET, ...) where $SECRET matches "password|secret|token|api_key|apiKey"
+      - pattern: println!(..., $SECRET, ...) where $SECRET matches "password|secret|token|api_key|apiKey"
+    message: Do not log secrets
+    languages: [typescript, rust, javascript]
+    severity: HIGH
+
+  - id: proper-error-handling
+    pattern-either:
+      - pattern: |
+          $X.map_err(...)
+          .unwrap()
+      - pattern: |
+          $X.unwrap();
+          println!(...)
+    message: Unwrap should be handled or documented
+    languages: [rust]
+    severity: LOW
+
+  - id: no-wildcard-cors
+    pattern: cors.allowed_origins("*")
+    message: Wildcard CORS origin allows any site - use whitelist
+    languages: [rust, python, javascript]
+    severity: HIGH

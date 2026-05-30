@@ -1,0 +1,28 @@
+# Fly.io deployment config for ValueSkins backend
+app = "valueskins-api"
+primary_region = "sfo"
+
+[build]
+builder = "paketobuildpacks"
+buildpacks = ["gcr.io/paketo-buildpacks/rust"]
+
+[env]
+RUST_LOG = "info"
+
+[[services]]
+internal_port = 8080
+processes = ["app"]
+
+[[services.ports]]
+port = 80
+handlers = ["http"]
+force_https = false
+
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
+
+[[services.tcp_checks]]
+grace_period = "10s"
+interval = "30s"
+timeout = "5s"

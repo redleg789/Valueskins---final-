@@ -1,0 +1,112 @@
+# Canary deployment — receives 1% traffic during rollout
+# Monitored for error rate and latency before promoting to full production
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-canary
+  namespace: valueskins
+  labels:
+    app: api-gateway
+    track: canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        track: canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: api-gateway
+      containers:
+        - name: api-gateway
+          image: ghcr.io/valueskins/api:latest
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: metrics
+          envFrom:
+            - secretRef:
+                name: api-secrets
+            - configMapRef:
+                name: api-config
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# Istio VirtualService for canary traffic splitting
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-gateway
+  namespace: valueskins
+spec:
+  hosts:
+    - api-gateway
+    - api.valueskins.io
+  gateways:
+    - valueskins-gateway
+  http:
+    - route:
+        - destination:
+            host: api-gateway
+            subset: stable
+          weight: 99
+        - destination:
+            host: api-gateway
+            subset: canary
+          weight: 1
+      retries:
+        attempts: 2
+        perTryTimeout: 3s
+        retryOn: 5xx,reset,connect-failure
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: api-gateway
+  namespace: valueskins
+spec:
+  host: api-gateway
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 1000
+      http:
+        h2UpgradePolicy: UPGRADE
+        maxRequestsPerConnection: 100
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+  subsets:
+    - name: stable
+      labels:
+        track: stable
+    - name: canary
+      labels:
+        track: canary

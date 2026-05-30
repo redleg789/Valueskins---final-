@@ -1,0 +1,355 @@
+# Frontend Static Asset Serving via NGINX
+# Serves React app, CSS, JS, images with caching, compression, and CDN optimization
+# For billions of users: CDN-first (Cloudflare/Akamai), fallback to NGINX edge
+
+---
+# 1. ConfigMap: NGINX static file configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-static-config
+  namespace: ingress-nginx
+data:
+  static-server.conf: |
+    server {
+      listen 8081;
+      server_name _;
+
+      # Gzip compression for all text assets
+      gzip on;
+      gzip_vary on;
+      gzip_min_length 1024;
+      gzip_types text/plain text/css text/javascript
+                 application/json application/javascript application/xml+rss;
+      gzip_proxied any;
+      gzip_level 6;
+
+      # Root directory for static assets
+      root /usr/share/nginx/html;
+      index index.html;
+
+      # Disable access logs for static files (reduce I/O)
+      access_log off;
+
+      # Enable HTTP caching for static assets
+      # Images: 1 year (content-hash in filename)
+      location ~* \.(jpg|jpeg|png|gif|ico|woff|woff2|ttf|eot|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header Vary "Accept-Encoding";
+        etag off;  # Don't revalidate immutable assets
+      }
+
+      # CSS/JS: 30 days (content-hash in filename)
+      location ~* \.(css|js)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        add_header Vary "Accept-Encoding";
+        etag off;
+      }
+
+      # HTML files: never cache, revalidate each time
+      location ~* \.html?$ {
+        expires -1;
+        add_header Cache-Control "private, no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Vary "Accept-Encoding";
+      }
+
+      # SPA fallback: route all unknown paths to index.html
+      location / {
+        try_files $uri $uri/ /index.html;
+        expires -1;
+        add_header Cache-Control "private, no-cache, no-store, must-revalidate";
+      }
+
+      # Security headers for all responses
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+      # Prevent access to hidden files
+      location ~ /\. {
+        return 404;
+        access_log off;
+        log_not_found off;
+      }
+    }
+
+---
+# 2. Deployment: Static asset server (separate from API NGINX)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-server
+  namespace: valueskins
+spec:
+  replicas: 5  # Scales to 20+ at peak
+  selector:
+    matchLabels:
+      app: frontend-server
+  template:
+    metadata:
+      labels:
+        app: frontend-server
+    spec:
+      # Anti-affinity: spread across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - frontend-server
+              topologyKey: kubernetes.io/hostname
+
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: http
+          containerPort: 8081
+
+        # Mount React build artifacts from ConfigMap or persistent storage
+        volumeMounts:
+        - name: static-files
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/
+          readOnly: true
+
+        # Resource constraints for Meta scale
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /index.html
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /index.html
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 2
+
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 101  # nginx user in nginx:alpine
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
+        # Temp filesystem for NGINX pid/cache
+        volumeMounts:
+        - name: tmp
+          mountPath: /var/run
+        - name: cache
+          mountPath: /var/cache/nginx
+
+      volumes:
+      # React build artifacts (from build pipeline, uploaded to ConfigMap or S3)
+      - name: static-files
+        configMap:
+          name: frontend-assets
+          defaultMode: 0644
+
+      # NGINX configuration
+      - name: nginx-config
+        configMap:
+          name: nginx-static-config
+          items:
+          - key: static-server.conf
+            path: default.conf
+
+      # Writable directories for NGINX
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+
+---
+# 3. Service: expose frontend server
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-server
+  namespace: valueskins
+spec:
+  selector:
+    app: frontend-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8081
+  type: ClusterIP
+
+---
+# 4. HorizontalPodAutoscaler: scale frontend servers based on load
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-server-hpa
+  namespace: valueskins
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend-server
+
+  minReplicas: 5
+  maxReplicas: 30  # Max 30 pods per region
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# 5. Ingress: route *.valueskins.io to frontend
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: valueskins
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Compression
+    nginx.ingress.kubernetes.io/enable-compression: "true"
+    nginx.ingress.kubernetes.io/compression-level: "5"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+      more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:";
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  - hosts:
+    - "valueskins.io"
+    - "*.valueskins.io"
+    - "app.valueskins.io"
+    secretName: valueskins-tls-cert
+
+  rules:
+  - host: "valueskins.io"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-server
+            port:
+              number: 80
+
+  - host: "app.valueskins.io"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-server
+            port:
+              number: 80
+
+---
+# 6. CDN Integration (optional but recommended for Meta scale)
+# If using Cloudflare/Akamai, this would be configured at their console
+# But we can document the caching rules here
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdn-cache-policy
+  namespace: valueskins
+data:
+  cache-rules: |
+    # CDN-level caching (Cache-Control headers in frontend-static-serving.yaml)
+
+    # Paths to cache (1 year):
+    /static/**         → max-age=31536000 (immutable, content-hashed)
+    /assets/**         → max-age=31536000
+    /images/**         → max-age=31536000
+
+    # Paths to cache (30 days):
+    /*.css             → max-age=2592000
+    /*.js              → max-age=2592000
+
+    # Paths to NOT cache:
+    /index.html        → max-age=0 (always fresh)
+    /service-worker.js → max-age=0
+    /manifest.json     → max-age=3600 (1 hour)
+
+    # Gzip compression enabled for all text
+    # Brotli compression for modern browsers
+    # Image optimization: WebP variants for supported browsers
+
+---
+# 7. ConfigMap: React build artifacts placeholder
+# In production, this is populated by CI/CD pipeline
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-assets
+  namespace: valueskins
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>ValueSkins - Professional Creator Credentials</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link rel="stylesheet" href="/static/css/main.css">
+    </head>
+    <body>
+      <div id="root"></div>
+      <script src="/static/js/main.js"></script>
+    </body>
+    </html>

@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: valueskins
+data:
+  RUST_LOG: "info,api_gateway=debug,sqlx=warn"
+  ALLOWED_ORIGINS: "https://valueskins.io,https://app.valueskins.io"
+  SMTP_FROM: "noreply@valueskins.io"
+  # Feature flags — platform can toggle per region/surface
+  FEATURE_BARTER_ENABLED: "true"
+  FEATURE_COMMUNITIES_ENABLED: "true"
+  FEATURE_MARKETPLACE_ENABLED: "true"
+  FEATURE_LINKEDIN_ENABLED: "true"
+  LINKEDIN_API_BASE_URL: "https://api.linkedin.com/v2"
+  # Rate limit config
+  RATE_LIMIT_RPS: "100"
+  RATE_LIMIT_BURST: "200"
+---
+# Secrets are injected from AWS Secrets Manager via External Secrets Operator
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: api-secrets
+  namespace: valueskins
+spec:
+  refreshInterval: 5m
+  secretStoreRef:
+    name: aws-secrets-store
+    kind: ClusterSecretStore
+  target:
+    name: api-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: valueskins/prod/database
+        property: url
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: valueskins/prod/auth
+        property: jwt_secret
+    - secretKey: API_KEY_HMAC_SALT
+      remoteRef:
+        key: valueskins/prod/auth
+        property: api_key_hmac_salt
+    - secretKey: VERIFICATION_HMAC_SECRET
+      remoteRef:
+        key: valueskins/prod/auth
+        property: verification_hmac_secret
+    - secretKey: SMTP_HOST
+      remoteRef:
+        key: valueskins/prod/smtp
+        property: host
+    - secretKey: SMTP_USER
+      remoteRef:
+        key: valueskins/prod/smtp
+        property: user
+    - secretKey: SMTP_PASS
+      remoteRef:
+        key: valueskins/prod/smtp
+        property: password
+    - secretKey: LINKEDIN_CLIENT_ID
+      remoteRef:
+        key: valueskins/prod/linkedin
+        property: client_id
+    - secretKey: LINKEDIN_CLIENT_SECRET
+      remoteRef:
+        key: valueskins/prod/linkedin
+        property: client_secret

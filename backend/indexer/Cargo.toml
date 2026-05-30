@@ -1,0 +1,17 @@
+[package]
+name = "indexer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared" }
+ethers = { version = "2.0", features = ["ws", "rustls"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "macros"] }
+tokio = { version = "1.0", features = ["full"] }
+dotenv = "0.15"
+log = "0.4"
+env_logger = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+hex = "0.4"
+anyhow = "1.0"

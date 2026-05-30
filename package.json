@@ -1,0 +1,29 @@
+{
+  "name": "valueskins-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ValueSkins creator economy platform",
+  "scripts": {
+    "dev:valueskins": "npm run dev --prefix ./frontend",
+    "build:valueskins": "npm run build --prefix ./frontend",
+    "install:all": "npm install && npm install --prefix ./frontend && npm install --prefix ./marketplace",
+    "clean": "rm -rf frontend/node_modules frontend/.next marketplace/node_modules marketplace/.next && npm cache clean --force"
+  },
+  "workspaces": [
+    "frontend",
+    "marketplace",
+    "backend"
+  ],
+  "keywords": [
+    "creator-economy",
+    "social-media",
+    "anti-meta",
+    "ethical-design"
+  ],
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "@babel/generator": "7.29.1"
+  }
+}

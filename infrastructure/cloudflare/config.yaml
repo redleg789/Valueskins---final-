@@ -1,0 +1,132 @@
+# Cloudflare configuration for DDoS protection and CDN
+
+# WAF Custom Rules
+# Block common attack patterns
+cf_waf_rule:
+  name: "block-attack-patterns"
+  action: block
+  expression: |
+    (
+      http.request.uri contains "../" or
+      http.request.uri contains "..\\" or
+      ip.geoip.country in {"CN", "RU"} or
+      not cf.source.status in {"200", "304"}
+    )
+  sensitivity: medium
+  action: block
+
+# Rate limiting rules
+cf_rate_limit:
+  # API endpoints
+  - name: "api-rate-limit"
+    action: challenge
+    expression: "http.request.uri matches \"^/api/\""
+    threshold: 100
+    period: 60
+    
+  # Auth endpoints (stricter)
+  - name: "auth-rate-limit"
+    action: block
+    expression: "http.request.uri matches \"^/api/v1/auth/\""
+    threshold: 20
+    period: 60
+
+# DDoS Protection
+cf_ddos:
+  action: intervene
+  sensitivity: high
+  auto_block: true
+
+# Bot Fight Mode
+cf_bot_fight:
+  enabled: true
+  challenge_js: true
+  serve_alt_content: true
+
+# Page Rules for CDN caching
+cf_page_rules:
+  # Static assets - long cache
+  - url: "app.valueskins.io/_next/static/*"
+    cache: true
+    cache_level: "cache_everything"
+    edge_cache_ttl: 2592000  # 30 days
+    
+  # Images - very long cache
+  - url: "cdn.valueskins.io/images/*"
+    cache: true
+    cache_level: "cache_everything"
+    edge_cache_ttl: 604800  # 7 days
+    
+  # API - no cache
+  - url: "api.valueskins.io/*"
+    cache: false
+    origin_server_name: "api.valueskins.io"
+    
+  # Frontend app - standard cache
+  - url: "app.valueskins.io/*"
+    cache: false
+    brotli: true
+    minify:
+      - javascript: true
+      - css: true
+      - html: true
+      - xml: false
+
+# Workers for edge computing
+cf_worker:
+  name: "rate-limiter"
+  code: |
+    export default {
+      async fetch(request) {
+        const ip = request.headers.get("CF-Connecting-IP");
+        const key = `ratelimit:${ip}`;
+        
+        // Check counter in KV
+        const count = await RATE_LIMITER.get(key) || 0;
+        
+        if (count > 100) {
+          return new Response("Rate limit exceeded", { status: 429 });
+        }
+        
+        await RATE_LIMITER.put(key, count + 1, { expirationTtl: 60 });
+        return fetch(request);
+      }
+    }
+
+# Origin Server TLS Configuration
+cf_tls:
+  minimum_tls_version: "1.2"
+  tls_cipher:
+    - "ECDHE-RSA-AES128-GCM-SHA256"
+    - "ECDHE-RSA-AES256-GCM-SHA384"
+  certificate_authority: "Cloudflare Origin SSL"
+
+# DNS Configuration
+cf_dns:
+  records:
+    - name: "@"
+      type: A
+      value: "<load-balancer-ip>"
+      proxied: true
+      
+    - name: "api"
+      type: A
+      value: "<load-balancer-ip>"
+      proxied: true
+      
+    - name: "cdn"
+      type: CNAME
+      value: "origin.storage.example.com"
+      proxied: true
+
+# Origin Shield (extra protection layer)
+cf_origin_shield:
+  enabled: true
+  region: "us-east"
+
+# Bandwidth Alliance (reduce costs)
+cf_bandwidth_alliance:
+  enabled: true
+  partners:
+    - "cloudflare"
+    - "fastly"

@@ -1,0 +1,57 @@
+[package]
+name = "api_gateway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = "4.4"
+actix-cors = "0.7"
+actix-governor = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenv = "0.15"
+tracing = "0.1"
+tokio = { version = "1.0", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "chrono"] }
+futures-util = "0.3"
+shared = { path = "../shared" }
+auth_service = { path = "../auth_service" }
+account_service = { path = "../account_service" }
+persona_service = { path = "../persona_service" }
+social_service = { path = "../social_service" }
+analytics_service = { path = "../analytics_service" }
+recommendation_service = { path = "../recommendation_service" }
+ai_service = { path = "../ai_service" }
+
+# New services
+notification_service = { path = "../notification_service" }
+referral_service = { path = "../referral_service" }
+marketplace_service = { path = "../marketplace_service" }
+waitlist_service = { path = "../waitlist_service" }
+brand_api = { path = "../brand_api" }
+communities_service = { path = "../communities_service" }
+events_service = { path = "../events_service" }
+credential_service = { path = "../credential_service" }
+matching_service = { path = "../matching_service" }
+settings_service = { path = "../settings_service" }
+linkedin_service = { path = "../linkedin_service" }
+platform_service = { path = "../platform_service" }
+pricing_service = { path = "../pricing_service" }
+credit_service = { path = "../credit_service" }
+contract_service = { path = "../contract_service" }
+reputation_service = { path = "../reputation_service" }
+identity_service = { path = "../identity_service" }
+guardian_service = { path = "../guardian_service" }
+trust_service = { path = "../trust_service" }
+risk_engine = { path = "../risk_engine" }
+verification_service = { path = "../verification_service" }
+moderation_service = { path = "../moderation_service" }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+base64 = "0.21"
+rand = "0.8"
+hmac = "0.12"
+sha2 = "0.10"
+subtle = "2.5"
+hex = "0.4"
+reqwest = { version = "0.11", features = ["json"] }

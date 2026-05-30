@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Valueskins</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; color: #ffffff; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; margin-bottom: 24px; }
+        .position { font-size: 64px; font-weight: 800; background: linear-gradient(135deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin: 24px 0; }
+        h1 { font-size: 28px; margin-bottom: 16px; }
+        p { color: #a1a1aa; line-height: 1.6; margin-bottom: 16px; }
+        .cta { display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 12px; color: white; text-decoration: none; font-weight: 600; margin-top: 16px; }
+        .referral-box { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 24px; margin-top: 24px; text-align: center; }
+        .referral-code { font-size: 24px; font-weight: 700; color: #8b5cf6; margin: 16px 0; }
+        .footer { text-align: center; color: #71717a; font-size: 14px; margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Valueskins</div>
+        </div>
+        
+        <div class="card">
+            <h1>You're on the list! 🎉</h1>
+            <p>Thanks for joining Valueskins. You're part of an exclusive group of creators who will get early access to the platform.</p>
+            
+            <p style="color: #71717a;">Your waitlist position:</p>
+            <div class="position">#{{position}}</div>
+            
+            <p>We're building the future of verified creator reputation. Own your skills. Connect with top brands. Get paid what you're worth.</p>
+        </div>
+        
+        <div class="referral-box">
+            <p style="margin: 0; color: white; font-weight: 600;">Want to jump the line?</p>
+            <p style="margin-top: 8px;">Share your referral code and move up 5 spots for every friend who joins!</p>
+            <div class="referral-code">{{referral_code}}</div>
+            <a href="{{referral_link}}" class="cta">Share Your Link →</a>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 Valueskins. All rights reserved.</p>
+            <p>You received this email because you signed up for the Valueskins waitlist.</p>
+        </div>
+    </div>
+</body>
+</html>

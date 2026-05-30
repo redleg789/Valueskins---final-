@@ -1,0 +1,177 @@
+# Prometheus — Metrics collection for all services
+# Tracks the Four Golden Signals: Latency, Traffic, Errors, Saturation
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ['alertmanager:9093']
+
+    scrape_configs:
+      # API Gateway metrics
+      - job_name: 'api-gateway'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: ['valueskins']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: ${1}:${2}
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_label_track]
+            target_label: track
+
+      # Node exporter
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: (.+):(.+)
+            replacement: ${1}:9100
+            target_label: __address__
+
+      # Kubernetes state metrics
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics:8080']
+
+  # SLO alerting rules
+  slo_rules.yml: |
+    groups:
+      - name: valueskins-slos
+        rules:
+          # SLO: 99.9% of requests succeed (error budget)
+          - alert: ErrorBudgetBurnHigh
+            expr: |
+              (
+                sum(rate(http_requests_total{namespace="valueskins",status=~"5.."}[1h]))
+                /
+                sum(rate(http_requests_total{namespace="valueskins"}[1h]))
+              ) > 0.001
+            for: 5m
+            labels:
+              severity: critical
+              team: platform
+            annotations:
+              summary: "Error budget burning fast — {{ $value | humanizePercentage }} error rate"
+
+          # SLO: P99 latency < 500ms
+          - alert: LatencySLOBreach
+            expr: |
+              histogram_quantile(0.99,
+                sum(rate(http_request_duration_seconds_bucket{namespace="valueskins"}[5m])) by (le, service)
+              ) > 0.5
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "P99 latency for {{ $labels.service }} is {{ $value }}s (SLO: <500ms)"
+
+          # Saturation: CPU > 80%
+          - alert: HighCPUSaturation
+            expr: |
+              avg(rate(container_cpu_usage_seconds_total{namespace="valueskins"}[5m]))
+              by (pod) /
+              avg(kube_pod_container_resource_limits{namespace="valueskins",resource="cpu"})
+              by (pod) > 0.8
+            for: 5m
+            labels:
+              severity: warning
+
+          # Canary error rate spike
+          - alert: CanaryErrorSpike
+            expr: |
+              (
+                sum(rate(http_requests_total{track="canary",status=~"5.."}[2m]))
+                /
+                sum(rate(http_requests_total{track="canary"}[2m]))
+              ) > 0.01
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Canary error rate {{ $value | humanizePercentage }} — auto-rollback triggered"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.51.0
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.retention.time=30d
+            - --web.enable-lifecycle
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: rules
+              mountPath: /etc/prometheus/rules
+            - name: data
+              mountPath: /prometheus
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: rules
+          configMap:
+            name: prometheus-config
+            items:
+              - key: slo_rules.yml
+                path: slo_rules.yml
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090

@@ -1,0 +1,309 @@
+# Service Level Objectives & Error Budget
+
+---
+# SLO: Availability (99.9%)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-availability
+  namespace: monitoring
+data:
+  description: "Availability SLO: 99.9% (43.2 minutes downtime allowed per month)"
+  calculation: |
+    (successful_requests / total_requests) * 100
+
+    Excluded:
+    - Client errors (4xx)
+    - Planned maintenance windows
+    - Requests from internal tools
+
+  prometheus_query: |
+    # Success rate (%)
+    (1 - (rate(http_requests_total{status=~"5.."}[5m]) /
+           rate(http_requests_total[5m]))) * 100
+
+    # Error budget remaining (minutes per month)
+    # If we're at 99.5%, we've used half our 43.2 minute budget
+
+  alert: |
+    - If availability < 99.5% for 15 minutes: MEDIUM alert
+    - If availability < 99.0% for 5 minutes: CRITICAL alert
+    - If error rate > 1% for 1 minute: CRITICAL alert
+
+---
+# SLO: Latency (p95 < 300ms)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-latency
+  namespace: monitoring
+data:
+  description: "Latency SLO: p95 < 300ms"
+  measurement: |
+    Track histogram_quantile(0.95, http_request_duration_seconds)
+    Measure per endpoint:
+    - POST /api/messages: < 200ms
+    - GET /api/profiles: < 300ms
+    - GET /api/deals: < 250ms
+    - POST /api/deals/apply: < 150ms
+
+  prometheus_query: |
+    # Overall p95 latency (ms)
+    histogram_quantile(0.95,
+      rate(http_request_duration_seconds_bucket[5m])
+    ) * 1000
+
+    # Per-endpoint
+    histogram_quantile(0.95,
+      rate(http_request_duration_seconds_bucket{endpoint="/api/messages"}[5m])
+    ) * 1000
+
+  alert: |
+    - If p95 > 400ms for 5 minutes: MEDIUM alert
+    - If p95 > 500ms for 2 minutes: CRITICAL alert
+    - If p99 > 1000ms for 3 minutes: CRITICAL alert
+
+---
+# SLO: Error Rate (< 0.1%)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-error-rate
+  namespace: monitoring
+data:
+  description: "Error Rate SLO: < 0.1% 5xx errors"
+  measurement: |
+    (5xx errors / total requests) * 100
+
+    Excluded:
+    - 429 Too Many Requests (rate limited, not an error)
+    - 503 Service Unavailable from circuit breaker (graceful degradation)
+
+  prometheus_query: |
+    # Error rate (%)
+    (rate(http_requests_total{status=~"5.."}[5m]) /
+     rate(http_requests_total[5m])) * 100
+
+    # Errors per minute
+    rate(http_requests_total{status=~"5.."}[1m]) * 60
+
+  alert: |
+    - If error rate > 0.5% for 2 minutes: MEDIUM alert
+    - If error rate > 1.0% for 1 minute: CRITICAL alert
+    - If specific endpoint error rate > 5%: CRITICAL alert
+
+---
+# SLO: Database Replication Lag (< 1 second)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-db-replication
+  namespace: monitoring
+data:
+  description: "Database replication lag < 1 second (must stay under 10s for 100K scale)"
+  measurement: |
+    Track replication_lag_seconds metric from AWS RDS
+
+  alert: |
+    - If lag > 2 seconds for 5 minutes: MEDIUM alert
+    - If lag > 5 seconds for 2 minutes: CRITICAL alert
+    - If lag > 30 seconds: CRITICAL + page
+
+---
+# SLO: Cache Hit Rate (> 85%)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-cache-hit-rate
+  namespace: monitoring
+data:
+  description: "Cache hit rate > 85% (cost savings + performance)"
+  measurement: |
+    (cache_hits / (cache_hits + cache_misses)) * 100
+
+    By type:
+    - User profiles: > 90%
+    - Deal data: > 85%
+    - Session data: > 95%
+
+  alert: |
+    - If overall hit rate < 80% for 10 minutes: MEDIUM alert
+    - If user profile hit rate < 85% for 10 minutes: MEDIUM alert
+
+---
+# SLO: WebSocket Connection Stability (< 0.5% drop rate)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-websocket-stability
+  namespace: monitoring
+data:
+  description: "WebSocket connection drop rate < 0.5%"
+  measurement: |
+    (connections_dropped / connections_created) * 100
+
+    Exclude intentional disconnects (user logout)
+
+  alert: |
+    - If drop rate > 1% for 5 minutes: MEDIUM alert
+    - If drop rate > 3% for 2 minutes: CRITICAL alert
+    - If concurrent connections drop > 500 in 30s: CRITICAL alert
+
+---
+# SLO: Message Queue Latency (< 500ms p95)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-queue-latency
+  namespace: monitoring
+data:
+  description: "Message processing latency < 500ms (messages to delivery)"
+  measurement: |
+    Time from message sent to message delivered to recipient
+
+    Track Kafka consumer lag:
+    - Lag < 1000 messages: OK
+    - Lag > 10000 messages: ALERT
+
+  alert: |
+    - If delivery latency > 1 second: MEDIUM alert
+    - If Kafka lag > 50000 messages: CRITICAL alert
+
+---
+# Error Budget Calculation
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: error-budget
+  namespace: monitoring
+data:
+  availability_budget: |
+    SLO: 99.9% uptime
+    Per month (30 days): 43,200 minutes
+    Allowed downtime: 0.1% of 43,200 = 43.2 minutes
+
+    Tracking:
+    - Week 1: If downtime > 11 minutes, on track to exceed budget
+    - Week 2: If cumulative > 22 minutes, exceeded budget
+    - Week 3: If cumulative > 33 minutes, exceeded budget
+    - Week 4: If cumulative > 43.2 minutes, EXCEEDED
+
+    When budget exceeded:
+    1. Page engineering leadership
+    2. Halt new feature development
+    3. All resources to stability/fixes
+    4. Communicate with users
+    5. Post-mortem after stabilization
+
+  latency_budget: |
+    SLO: 95% of requests < 300ms
+    This means: 5% of requests CAN exceed 300ms
+
+    If 1 million requests/day:
+    - 950k should be < 300ms
+    - 50k CAN be slower
+
+    But: if p99 is > 1 second, that's a problem
+    p99 should be 3-4x the p95 target
+
+---
+# Weekly SLO Review
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-review-schedule
+  namespace: monitoring
+data:
+  every_monday: |
+    1. Check if SLOs met last week
+    2. If missed: root cause analysis
+    3. Update runbooks if needed
+    4. Plan fixes for failed SLOs
+
+  monthly_review: |
+    1. Calculate error budget remaining
+    2. Project: will we stay under budget?
+    3. If not: reduce feature scope
+    4. Review top incidents
+    5. Update SLOs if needed (document why)
+
+---
+# Prometheus Recording Rules (for efficiency)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-recording-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: slo.rules
+    interval: 30s
+    rules:
+    # Availability
+    - record: slo:availability:ratio
+      expr: |
+        (rate(http_requests_total{status!~"5.."}[5m]) /
+         rate(http_requests_total[5m]))
+
+    # Latency
+    - record: slo:latency:p95
+      expr: |
+        histogram_quantile(0.95,
+          rate(http_request_duration_seconds_bucket[5m])
+        )
+
+    - record: slo:latency:p99
+      expr: |
+        histogram_quantile(0.99,
+          rate(http_request_duration_seconds_bucket[5m])
+        )
+
+    # Error rate
+    - record: slo:error_rate:ratio
+      expr: |
+        rate(http_requests_total{status=~"5.."}[5m]) /
+        rate(http_requests_total[5m])
+
+    # Cache hit rate
+    - record: slo:cache_hit_rate:ratio
+      expr: |
+        (rate(cache_hits_total[5m]) /
+         (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])))
+
+    # Database replication lag
+    - record: slo:db_replication_lag:seconds
+      expr: |
+        rds_replica_lag_seconds
+
+---
+# Alerting Rules (trigger when SLO violated)
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: slo.alerts
+    rules:
+    # Availability SLO: 99.9%
+    - alert: AvailabilitySLOViolation
+      expr: slo:availability:ratio < 0.995
+      for: 5m
+      annotations:
+        summary: "Availability below SLO ({{ $value }})"
+
+    # Latency SLO: p95 < 300ms
+    - alert: LatencySLOViolation
+      expr: slo:latency:p95 > 0.3
+      for: 5m
+      annotations:
+        summary: "Latency above SLO: p95 = {{ $value }}s"
+
+    # Error rate SLO: < 0.1%
+    - alert: ErrorRateSLOViolation
+      expr: slo:error_rate:ratio > 0.001
+      for: 2m
+      annotations:
+        summary: "Error rate above SLO ({{ $value }})"
+

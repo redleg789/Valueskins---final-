@@ -1,0 +1,73 @@
+# Chaos Engineering — Pod Kill experiment
+# Validates: system self-heals when random pods die
+# Run weekly in staging, monthly in production
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: api-pod-kill
+  namespace: valueskins
+  labels:
+    experiment: pod-resilience
+spec:
+  action: pod-kill
+  mode: one
+  selector:
+    namespaces:
+      - valueskins
+    labelSelectors:
+      app: api-gateway
+  scheduler:
+    cron: "@every 4h"
+  duration: "30s"
+---
+# Network partition: simulate AZ isolation
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: api-network-partition
+  namespace: valueskins
+  labels:
+    experiment: network-resilience
+spec:
+  action: partition
+  mode: one
+  selector:
+    namespaces:
+      - valueskins
+    labelSelectors:
+      app: api-gateway
+  direction: both
+  target:
+    selector:
+      namespaces:
+        - valueskins
+      labelSelectors:
+        app: postgres
+    mode: all
+  duration: "60s"
+  scheduler:
+    cron: "@weekly"
+---
+# Latency injection: simulate slow database
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: db-latency-injection
+  namespace: valueskins
+  labels:
+    experiment: latency-resilience
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - valueskins
+    labelSelectors:
+      app: postgres
+  delay:
+    latency: "200ms"
+    jitter: "50ms"
+    correlation: "50"
+  duration: "5m"
+  scheduler:
+    cron: "@weekly"

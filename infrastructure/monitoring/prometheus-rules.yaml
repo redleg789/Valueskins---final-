@@ -1,0 +1,208 @@
+# Prometheus and Grafana monitoring stack for Kubernetes
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+---
+# Prometheus ServiceMonitor for API Gateway
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-gateway
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+  namespaceSelector:
+    matchNames:
+    - valueskins
+---
+# ServiceMonitor for Frontend
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: frontend
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  endpoints:
+  - port: http
+    path: /api/metrics
+    interval: 30s
+  namespaceSelector:
+    matchNames:
+    - valueskins
+---
+# ServiceMonitor for Redis
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+  namespaceSelector:
+    matchNames:
+    - valueskins
+---
+# PrometheusRule for alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: valueskins-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: valueskins.rules
+    rules:
+    # High CPU usage
+    - alert: HighCPUUsage
+      expr: rate(process_cpu_seconds_total{job="api-gateway"}[5m]) > 1.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High CPU usage on API Gateway"
+        description: "CPU usage is above 90% for 5 minutes"
+    
+    # High memory usage
+    - alert: HighMemoryUsage
+      expr: process_resident_memory_bytes / process_max_memory_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage on API Gateway"
+        description: "Memory usage is above 90%"
+    
+    # High request latency
+    - alert: HighRequestLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High request latency"
+        description: "95th percentile latency is above 1 second"
+    
+    # High error rate
+    - alert: HighErrorRate
+      expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.01
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "High error rate"
+        description: "Error rate is above 1%"
+    
+    # Database connection pool exhaustion
+    - alert: DatabaseConnectionPoolExhausted
+      expr: pg_stat_activity_count / pg_settings_max_connections > 0.9
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Database connection pool near exhaustion"
+        description: "Over 90% of connections in use"
+    
+    # Redis memory high
+    - alert: RedisMemoryHigh
+      expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Redis memory usage high"
+        description: "Redis is using over 90% of max memory"
+    
+    # Pod not ready
+    - alert: PodNotReady
+      expr: kube_pod_status_ready{namespace="valueskins", condition="true"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod not ready"
+        description: "Pod {{ $labels.pod }} has been not ready for 5 minutes"
+    
+    # HPA at max replicas
+    - alert: HPAAtMaxReplicas
+      expr: kube_horizontal_pod_autoscaler_status_desired_replicas == kube_horizontal_pod_autoscaler_spec_max_replicas
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "HPA at maximum replicas"
+        description: "HPA for {{ $labels.scale_target_ref.name }} is at max"
+    
+    # Circuit breaker open
+    - alert: CircuitBreakerOpen
+      expr: circuit_breaker_state == 1
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Circuit breaker open for {{ $labels.service }}"
+        description: "Circuit breaker for {{ $labels.service }} has been open for 1 minute"
+---
+# Grafana dashboards (ConfigMap)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  overview.json: |
+    {
+      "dashboard": {
+        "title": "ValueSkins Overview",
+        "panels": [
+          {
+            "type": "graph",
+            "title": "Request Rate",
+            "targets": [{"expr": "rate(http_requests_total[5m])"}]
+          },
+          {
+            "type": "graph", 
+            "title": "Latency (p95)",
+            "targets": [{"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"}]
+          },
+          {
+            "type": "graph",
+            "title": "Error Rate",
+            "targets": [{"expr": "rate(http_requests_total{status=~\"5..\"}[5m])"}]
+          },
+          {
+            "type": "graph",
+            "title": "Active Connections",
+            "targets": [{"expr": "sum(http_connections)"}]
+          }
+        ]
+      }
+    }

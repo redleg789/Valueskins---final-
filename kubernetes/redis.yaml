@@ -1,0 +1,372 @@
+# Redis — Session cache, rate-limit counters, pub/sub for real-time events
+# Deployment: Redis Sentinel (3 nodes) for HA; Cluster mode for >100GB data
+# At Meta scale: use Redis Cluster with 6+ shards per region
+
+---
+# 1. ConfigMap: Redis configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: valueskins
+data:
+  redis.conf: |
+    # Persistence: AOF + RDB for durability
+    appendonly yes
+    appendfsync everysec
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    # Memory: evict LRU when full (cache use case)
+    maxmemory 1gb
+    maxmemory-policy allkeys-lru
+
+    # Security: require password (injected via Secret)
+    requirepass ${REDIS_PASSWORD}
+
+    # Disable dangerous commands
+    rename-command FLUSHALL ""
+    rename-command FLUSHDB  ""
+    rename-command DEBUG    ""
+    rename-command CONFIG   ""
+
+    # Slow log threshold: 10ms
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # Connection limits
+    maxclients 10000
+    tcp-backlog 511
+    timeout 300
+    tcp-keepalive 300
+
+    # Latency monitoring
+    latency-monitor-threshold 100
+    latency-tracking yes
+
+---
+# 2. Secret: Redis password (in production use External Secrets Operator or Vault)
+# kubectl create secret generic redis-secret --from-literal=password=<strong-random-password>
+# Do NOT hardcode real passwords here. This is a placeholder for the secret reference.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+  namespace: valueskins
+type: Opaque
+# data.password must be set via CI/CD or sealed-secrets — never committed
+# Example: kubectl create secret generic redis-secret -n valueskins --from-literal=password="$(openssl rand -base64 32)"
+
+---
+# 3. StatefulSet: Redis primary (with persistence)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-primary
+  namespace: valueskins
+  labels:
+    app: redis
+    role: primary
+spec:
+  serviceName: redis-primary
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: primary
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: primary
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Inject password from secret before starting
+          sed "s/\${REDIS_PASSWORD}/$REDIS_PASSWORD/" /etc/redis/redis.conf > /tmp/redis.conf
+          redis-server /tmp/redis.conf
+
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+
+        ports:
+        - name: redis
+          containerPort: 6379
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+
+        volumeMounts:
+        - name: redis-config
+          mountPath: /etc/redis
+          readOnly: true
+        - name: redis-data
+          mountPath: /data
+
+        livenessProbe:
+          exec:
+            command: ["redis-cli", "-a", "$(REDIS_PASSWORD)", "ping"]
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "-a", "$(REDIS_PASSWORD)", "ping"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999  # redis user in redis:alpine
+          readOnlyRootFilesystem: false  # Redis needs /data writable
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+
+      volumes:
+      - name: redis-config
+        configMap:
+          name: redis-config
+
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 20Gi
+      storageClassName: fast-ssd  # Use gp3 on AWS, pd-ssd on GCP
+
+---
+# 4. StatefulSet: Redis replicas (2 read replicas)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-replica
+  namespace: valueskins
+  labels:
+    app: redis
+    role: replica
+spec:
+  serviceName: redis-replica
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis
+      role: replica
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: replica
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          redis-server \
+            --replicaof redis-primary-0.redis-primary.instagram.svc.cluster.local 6379 \
+            --requirepass "$REDIS_PASSWORD" \
+            --masterauth "$REDIS_PASSWORD" \
+            --appendonly yes \
+            --maxmemory 1gb \
+            --maxmemory-policy allkeys-lru
+
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+
+        ports:
+        - name: redis
+          containerPort: 6379
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+
+        livenessProbe:
+          exec:
+            command: ["redis-cli", "-a", "$(REDIS_PASSWORD)", "ping"]
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "-a", "$(REDIS_PASSWORD)", "ping"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 20Gi
+      storageClassName: fast-ssd
+
+---
+# 5. Service: Redis primary (writes go here)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-primary
+  namespace: valueskins
+  labels:
+    app: redis
+    role: primary
+spec:
+  clusterIP: None  # Headless — StatefulSet pods get stable DNS
+  selector:
+    app: redis
+    role: primary
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+
+---
+# 6. Service: Redis read (reads spread across replicas)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-read
+  namespace: valueskins
+  labels:
+    app: redis
+    role: replica
+spec:
+  selector:
+    app: redis
+    role: replica
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+# 7. HPA: scale replicas on memory pressure
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: redis-replica-hpa
+  namespace: valueskins
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: redis-replica
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+
+---
+# 8. PodDisruptionBudget: always keep 1 replica up during rollouts
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: valueskins
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: redis
+
+---
+# 9. NetworkPolicy: only API gateway pods can reach Redis
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-network-policy
+  namespace: valueskins
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    - podSelector:
+        matchLabels:
+          app: valueskins-matching
+    - podSelector:
+        matchLabels:
+          app: valueskins-marketplace
+    ports:
+    - protocol: TCP
+      port: 6379
+
+---
+# 10. ServiceMonitor: expose Redis metrics to Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-monitor
+  namespace: valueskins
+  labels:
+    app: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+  - port: redis
+    interval: 30s
+    path: /metrics

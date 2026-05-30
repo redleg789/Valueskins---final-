@@ -1,0 +1,127 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+  CLUSTER_NAME: valueskins-prod
+  AWS_REGION: us-east-1
+
+jobs:
+  # ── Canary Deploy (1% traffic) ─────────────────────────────────────
+  canary:
+    name: Canary Deploy
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production-canary
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Deploy canary (1% traffic)
+        run: |
+          SHA=${{ github.event.workflow_run.head_sha }}
+          # Update canary deployment image
+          kubectl set image deployment/api-canary \
+            api=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api:${SHA} \
+            -n valueskins
+          kubectl set image deployment/frontend-canary \
+            frontend=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${SHA} \
+            -n valueskins
+          kubectl rollout status deployment/api-canary -n valueskins --timeout=300s
+          kubectl rollout status deployment/frontend-canary -n valueskins --timeout=300s
+
+  # ── Monitor Canary (Golden Signals) ────────────────────────────────
+  monitor-canary:
+    name: Monitor Canary
+    needs: canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Watch golden signals for 10 min
+        run: |
+          echo "Monitoring canary for 10 minutes..."
+          PROM_URL=$(kubectl get svc prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          for i in $(seq 1 20); do
+            sleep 30
+
+            # Check error rate (must be < 1%)
+            ERROR_RATE=$(curl -s "http://${PROM_URL}:9090/api/v1/query?query=sum(rate(http_requests_total{deployment='api-canary',status=~'5..'}[1m]))/sum(rate(http_requests_total{deployment='api-canary'}[1m]))*100" | jq -r '.data.result[0].value[1] // "0"')
+
+            # Check p99 latency (must be < 500ms)
+            P99=$(curl -s "http://${PROM_URL}:9090/api/v1/query?query=histogram_quantile(0.99,sum(rate(http_request_duration_seconds_bucket{deployment='api-canary'}[1m]))by(le))" | jq -r '.data.result[0].value[1] // "0"')
+
+            echo "Check $i/20 — Error rate: ${ERROR_RATE}% | P99 latency: ${P99}s"
+
+            # Auto-rollback if thresholds exceeded
+            if (( $(echo "$ERROR_RATE > 1.0" | bc -l 2>/dev/null || echo 0) )); then
+              echo "ERROR RATE EXCEEDED 1% — Rolling back canary"
+              kubectl rollout undo deployment/api-canary -n valueskins
+              kubectl rollout undo deployment/frontend-canary -n valueskins
+              exit 1
+            fi
+          done
+          echo "Canary passed all golden signal checks"
+
+  # ── Full Production Rollout ────────────────────────────────────────
+  production:
+    name: Production Rollout
+    needs: monitor-canary
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: Promote to production (100% traffic)
+        run: |
+          SHA=${{ github.event.workflow_run.head_sha }}
+          kubectl set image deployment/api \
+            api=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/api:${SHA} \
+            -n valueskins
+          kubectl set image deployment/frontend \
+            frontend=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${SHA} \
+            -n valueskins
+          kubectl rollout status deployment/api -n valueskins --timeout=600s
+          kubectl rollout status deployment/frontend -n valueskins --timeout=600s
+      - name: Verify deployment
+        run: |
+          # Smoke test: hit health endpoint
+          API_URL=$(kubectl get svc api -n valueskins -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          for i in $(seq 1 5); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://${API_URL}:8080/health")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Health check passed"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed — rolling back"
+          kubectl rollout undo deployment/api -n valueskins
+          kubectl rollout undo deployment/frontend -n valueskins
+          exit 1
+      - name: Tag release
+        run: |
+          SHA=${{ github.event.workflow_run.head_sha }}
+          git tag "deploy-$(date +%Y%m%d-%H%M%S)-${SHA:0:7}"
+          git push origin --tags

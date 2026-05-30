@@ -1,0 +1,58 @@
+# K8s Base Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: valueskins
+  labels:
+    app.kubernetes.io/name: valueskins
+    app.kubernetes.io/managed-by: helm
+---
+# ConfigMap for application config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: valueskins-config
+  namespace: valueskins
+data:
+  RUST_LOG: "info,api_gateway=debug"
+  DATABASE_POOL_SIZE: "100"
+  DATABASE_REPLICA_URL: "postgres://user:pass@read-replica-1:5432/valueskins"
+  REDIS_POOL_SIZE: "100"
+  REDIS_MAX_CONNECTIONS: "100"
+  RATE_LIMIT_AUTH: "50"
+  RATE_LIMIT_API: "200"
+  RATE_LIMIT_WINDOW_SECONDS: "60"
+  WEBSOCKET_PING_INTERVAL_SECONDS: "30"
+  WEBSOCKET_MAX_CONNECTIONS: "10000"
+  CIRCUIT_BREAKER_THRESHOLD: "10"
+  CIRCUIT_BREAKER_TIMEOUT_SECONDS: "60"
+  HEALTH_CHECK_INTERVAL_SECONDS: "10"
+  IDLE_TIMEOUT_SECONDS: "60"
+  KEEPALIVE_TIMEOUT_SECONDS: "120"
+  CACHE_PROFILE_TTL_SECONDS: "300"
+  CACHE_DEAL_TTL_SECONDS: "60"
+  CACHE_LISTINGS_TTL_SECONDS: "30"
+  READ_REPLICA_ENABLED: "true"
+---
+# PodDisruptionBudget for graceful rolling updates
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: valueskins
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+  namespace: valueskins
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend

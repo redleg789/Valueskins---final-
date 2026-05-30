@@ -1,0 +1,130 @@
+groups:
+  - name: valueskins-critical
+    rules:
+      # API Error Rate > 1% for 5 minutes
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High API error rate ({{ $value | humanizePercentage }})"
+          description: "More than 1% of requests are returning 5xx errors."
+
+      # API P99 Latency > 500ms for 5 minutes
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "P99 latency above 500ms ({{ $value | humanizeDuration }})"
+          description: "API response time is degraded. Check database and cache health."
+
+      # Database Connection Pool Exhaustion
+      - alert: DatabasePoolExhausted
+        expr: db_pool_active_connections / db_pool_max_connections > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool >90% utilized"
+          description: "Pool nearing exhaustion. Scale DB connections or optimize queries."
+
+      # Pod Not Ready
+      - alert: PodNotReady
+        expr: kube_pod_status_ready{namespace="valueskins"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} not ready"
+          description: "Pod has been unready for 3 minutes. Check pod logs."
+
+  - name: valueskins-warning
+    rules:
+      # High Rate Limit Rejections
+      - alert: HighRateLimitRejections
+        expr: |
+          sum(rate(http_requests_total{status="429"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate of 429 responses ({{ $value }}/s)"
+          description: "Possible abuse or misconfigured client."
+
+      # Redis Cache Miss Rate > 50%
+      - alert: HighCacheMissRate
+        expr: |
+          rate(cache_misses_total[5m])
+          / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache miss rate above 50%"
+          description: "Redis cache is not effective. Check eviction policy and key TTLs."
+
+      # Notification Queue Backlog
+      - alert: NotificationQueueBacklog
+        expr: notification_queue_pending > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Notification queue backlog ({{ $value }} pending)"
+          description: "Notifications are not being delivered fast enough."
+
+      # Circuit Breaker Open
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state == 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.service }}"
+          description: "Downstream service is failing. Check service health."
+
+      # Disk Usage > 85%
+      - alert: HighDiskUsage
+        expr: |
+          (node_filesystem_size_bytes - node_filesystem_avail_bytes)
+          / node_filesystem_size_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk usage above 85% on {{ $labels.instance }}"
+          description: "Clean up logs, temp files, or expand storage."
+
+      # Memory Usage > 90%
+      - alert: HighMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memory usage above 90% on {{ $labels.instance }}"
+          description: "Investigate memory leak or scale the instance."
+
+  - name: valueskins-slo
+    rules:
+      # SLO: 99.9% availability (error budget)
+      - alert: ErrorBudgetBurn
+        expr: |
+          1 - (
+            sum(rate(http_requests_total{status!~"5.."}[1h]))
+            / sum(rate(http_requests_total[1h]))
+          ) > 0.001
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error budget burning too fast"
+          description: "At current error rate, monthly SLO will be breached. Investigate immediately."

@@ -1,0 +1,375 @@
+# NGINX Ingress Controller for ValueSkins
+# Handles: external traffic, SSL/TLS, static files, rate limiting, DDoS protection
+# Deployment target: Kubernetes 1.24+
+
+---
+# 1. NGINX Ingress Controller Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+
+---
+# 2. ConfigMap: NGINX configuration for Meta scale
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: ingress-nginx
+data:
+  # Worker connections = (max clients / number of workers)
+  # Meta: 500K DAU * 2 concurrent connections avg = 1M connections needed
+  # With 8 workers: 1M / 8 = 125K connections per worker
+  worker-connections: "131072"  # 2^17, safely above 125K
+
+  # Worker processes = number of CPU cores
+  # This gets auto-detected, but can override
+  worker-processes: "auto"
+
+  # Buffer sizes for large request/response bodies
+  client-body-buffer-size: "128m"
+  client-max-body-size: "128m"
+
+  # Timeouts (prevent slow clients from holding connections)
+  client-body-timeout: "30s"
+  client-header-timeout: "30s"
+  send-timeout: "60s"
+  keepalive-timeout: "65s"
+  keepalive-requests: "100"
+
+  # Upstream settings
+  upstream-fail-timeout: "10s"
+  upstream-max-fails: "3"
+  upstream-keepalive-connections: "32"
+
+  # Rate limiting (per IP, per URL)
+  limit-rps: "1000"  # Global: 1000 req/sec
+  limit-conn-zone-shared-size: "10m"
+  limit-req-zone-shared-size: "10m"
+
+  # Logging
+  log-format-upstream: '{"timestamp":"$time_iso8601","client":"$remote_addr","method":"$request_method","uri":"$request_uri","status":"$status","bytes_sent":"$bytes_sent","request_time":"$request_time","upstream_response_time":"$upstream_response_time","correlation_id":"$http_x_correlation_id","user_agent":"$http_user_agent"}'
+
+  # Compression
+  gzip: "on"
+  gzip-min-length: "1024"
+  gzip-types: "application/json text/plain text/css application/javascript"
+  gzip-level: "5"
+
+  # HTTP/2
+  http2-max-requests: "1000"
+  http2-max-requests-per-connection: "1000"
+
+---
+# 3. NGINX Ingress Controller Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress-controller
+  namespace: ingress-nginx
+  labels:
+    app: nginx-ingress
+spec:
+  replicas: 3  # Minimum 3 for HA; scales to 10+ at peak
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+    spec:
+      # Anti-affinity: spread NGINX pods across different nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - nginx-ingress
+              topologyKey: kubernetes.io/hostname
+
+      serviceAccountName: nginx-ingress
+      containers:
+      - name: nginx-ingress-controller
+        image: registry.k8s.io/ingress-nginx/controller:v1.9.6
+        imagePullPolicy: IfNotPresent
+
+        args:
+        - /nginx-ingress-controller
+        - --configmap=ingress-nginx/nginx-config
+        - --tcp-services-configmap=ingress-nginx/tcp-services
+        - --udp-services-configmap=ingress-nginx/udp-services
+        - --publish-service=ingress-nginx/nginx-ingress-service
+        - --watch-namespace=valueskins  # Only watch instagram namespace
+        - --election-id=nginx-ingress-controller-leader
+        - --controller-class=k8s.io/ingress-nginx
+        - --ingress-class=nginx
+        - --update-status=true
+        - --log-level=info
+        - --enable-metrics=true
+        - --metrics-per-host=true
+
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - name: https
+          containerPort: 443
+          protocol: TCP
+        - name: metrics
+          containerPort: 10254
+          protocol: TCP
+
+        # Security: run as non-root
+        securityContext:
+          allowPrivilegeEscalation: true
+          runAsNonRoot: false  # NGINX needs CAP_NET_BIND_SERVICE to bind port 80/443
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            - NET_RAW
+
+        # Resource limits for Meta scale
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "2000m"
+
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 10254
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+
+---
+# 4. ServiceAccount for NGINX
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-ingress
+  namespace: ingress-nginx
+
+---
+# 5. ClusterRole: permissions for NGINX controller
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nginx-ingress
+rules:
+- apiGroups: ['']
+  resources: ['configmaps', 'endpoints', 'nodes', 'pods', 'secrets', 'namespaces']
+  verbs: ['list', 'watch', 'get']
+- apiGroups: ['apps']
+  resources: ['deployments', 'daemonsets', 'statefulsets']
+  verbs: ['list', 'watch', 'get']
+- apiGroups: ['batch']
+  resources: ['jobs', 'cronjobs']
+  verbs: ['list', 'watch', 'get']
+- apiGroups: ['extensions', 'networking.k8s.io']
+  resources: ['ingresses', 'ingressclasses']
+  verbs: ['get', 'list', 'watch']
+- apiGroups: ['']
+  resources: ['events']
+  verbs: ['create', 'patch']
+- apiGroups: ['discovery.k8s.io']
+  resources: ['endpointslices']
+  verbs: ['list', 'watch', 'get']
+
+---
+# 6. ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nginx-ingress
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nginx-ingress
+subjects:
+- kind: ServiceAccount
+  name: nginx-ingress
+  namespace: ingress-nginx
+
+---
+# 7. Role: namespace-scoped permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nginx-ingress
+  namespace: ingress-nginx
+rules:
+- apiGroups: ['']
+  resources: ['configmaps', 'pods']
+  verbs: ['get', 'create', 'update', 'delete', 'list', 'watch', 'patch']
+- apiGroups: ['']
+  resources: ['configmaps/status']
+  verbs: ['get', 'create', 'update']
+- apiGroups: ['']
+  resources: ['endpoints']
+  verbs: ['create', 'get', 'update', 'delete', 'list', 'watch']
+
+---
+# 8. RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nginx-ingress
+  namespace: ingress-nginx
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nginx-ingress
+subjects:
+- kind: ServiceAccount
+  name: nginx-ingress
+  namespace: ingress-nginx
+
+---
+# 9. NGINX Ingress Service (exposed externally)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ingress-service
+  namespace: ingress-nginx
+  labels:
+    app: nginx-ingress
+  annotations:
+    # AWS: Create Network Load Balancer
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    # GCP: Create Network Load Balancer
+    cloud.google.com/neg: '{"ingress": true}'
+    # Azure: Create Load Balancer
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+spec:
+  type: LoadBalancer
+
+  # Preserve client IP
+  externalTrafficPolicy: Local
+
+  # Session affinity: route from same client to same pod
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+
+  selector:
+    app: nginx-ingress
+
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 443
+    protocol: TCP
+
+---
+# 10. HorizontalPodAutoscaler: scale NGINX based on CPU/memory
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-ingress-hpa
+  namespace: ingress-nginx
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-ingress-controller
+
+  minReplicas: 3   # Always 3+ for HA
+  maxReplicas: 20  # Max 20 pods per region
+
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+  # Scale up slowly on traffic spike, scale down slowly to save money
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100  # Double pods every minute if needed
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50  # Half pods every 5 minutes
+        periodSeconds: 300
+
+---
+# 11. PodDisruptionBudget: ensure NGINX availability during maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nginx-ingress-pdb
+  namespace: ingress-nginx
+spec:
+  minAvailable: 2  # Always keep 2+ NGINX pods running
+  selector:
+    matchLabels:
+      app: nginx-ingress
+
+---
+# 12. ServiceMonitor: expose NGINX metrics to Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nginx-ingress-monitor
+  namespace: ingress-nginx
+  labels:
+    app: nginx-ingress
+spec:
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics

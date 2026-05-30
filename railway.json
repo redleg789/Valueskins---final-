@@ -1,0 +1,14 @@
+{
+  "$schema": "https://railway.app/schema.json",
+  "build": {
+    "builder": "dockerfile"
+  },
+  "deploy": {
+    "startCommand": "./target/release/api_gateway",
+    "restartPolicyMaxRetries": 5,
+    "restartPolicyMaxRetryDelay": 300
+  },
+  "volumes": {
+    "data": "/data"
+  }
+}

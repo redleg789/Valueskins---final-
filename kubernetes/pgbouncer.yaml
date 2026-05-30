@@ -1,0 +1,369 @@
+# PgBouncer — PostgreSQL connection pooler
+# Critical at Meta scale: PostgreSQL handles ~100 real connections max.
+# PgBouncer pools thousands of app connections into those 100.
+# Mode: transaction pooling (safest for stateless API handlers)
+# Each region runs its own PgBouncer tier pointing at the regional read replica
+# and primary for writes.
+
+---
+# 1. ConfigMap: PgBouncer configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: valueskins
+data:
+  pgbouncer.ini: |
+    [databases]
+    # Write pool → primary (all DDL/DML)
+    valueskins_write = host=postgres-primary port=5432 dbname=valueskins
+    # Read pool → replica (SELECT queries)
+    valueskins_read  = host=postgres-replica  port=5432 dbname=valueskins
+
+    [pgbouncer]
+    # Bind to all interfaces inside the pod
+    listen_addr = 0.0.0.0
+    listen_port = 5432
+
+    # Transaction pooling: connection released after each transaction.
+    # Required for stateless microservices; incompatible with SET/advisory locks.
+    pool_mode = transaction
+
+    # Pool sizes
+    # default_pool_size: connections PgBouncer opens to Postgres per db/user pair
+    # At Meta scale: total_app_connections / pgbouncer_replicas / db_user_count
+    default_pool_size = 25
+    max_client_conn  = 5000   # max frontend connections per PgBouncer pod
+    min_pool_size    = 5      # keep alive even at idle
+    reserve_pool_size = 10   # emergency overflow
+    reserve_pool_timeout = 3  # seconds to wait before using reserve
+
+    # Timeouts (prevent hung connections from blocking the pool)
+    server_connect_timeout = 10
+    server_idle_timeout    = 600
+    client_idle_timeout    = 600
+    query_timeout          = 30
+    query_wait_timeout     = 10
+    client_login_timeout   = 10
+
+    # Admin access (for pgbouncer SHOW POOLS / RELOAD)
+    admin_users = pgbouncer_admin
+
+    # Authentication
+    auth_type = scram-sha-256
+    auth_file = /etc/pgbouncer/userlist.txt
+
+    # Logging (structured — feed into Loki/CloudWatch)
+    log_connections = 1
+    log_disconnections = 1
+    log_pooler_errors = 1
+    stats_period = 60
+
+    # TLS to backend Postgres
+    server_tls_sslmode = require
+    server_tls_ca_file = /etc/pgbouncer/server-ca.crt
+
+    # Ignore startup parameters that break transaction pooling
+    ignore_startup_parameters = extra_float_digits,options
+
+  # userlist.txt is generated from the Secret at pod startup (see init container)
+  # Format: "username" "scram-sha-256$<hash>"
+  # Never store plaintext passwords here.
+
+---
+# 2. Secret: PgBouncer credentials
+# In production, use External Secrets Operator pulling from AWS Secrets Manager / Vault.
+# The secret must contain:
+#   DB_HOST_PRIMARY, DB_HOST_REPLICA, DB_PASSWORD, PGBOUNCER_ADMIN_PASSWORD
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pgbouncer-secret
+  namespace: valueskins
+type: Opaque
+# Populate via CI/CD:
+# kubectl create secret generic pgbouncer-secret -n valueskins \
+#   --from-literal=db_password="$(vault kv get -field=password secret/postgres)" \
+#   --from-literal=admin_password="$(openssl rand -base64 32)"
+
+---
+# 3. Deployment: PgBouncer (stateless — scale horizontally)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: valueskins
+  labels:
+    app: pgbouncer
+spec:
+  replicas: 3   # 3 pods × 5000 client connections = 15,000 max app connections
+  selector:
+    matchLabels:
+      app: pgbouncer
+  template:
+    metadata:
+      labels:
+        app: pgbouncer
+    spec:
+      # Spread across nodes for HA
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: [pgbouncer]
+              topologyKey: kubernetes.io/hostname
+
+      # Init container: generate userlist.txt from Kubernetes Secret
+      # This keeps plaintext passwords out of ConfigMaps and image layers.
+      initContainers:
+      - name: generate-userlist
+        image: busybox:1.36
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Write userlist.txt expected by PgBouncer auth_file
+          # Use scram-sha-256 hashes — never store plaintext
+          echo '"valueskins" "'"$DB_PASSWORD"'"' > /etc/pgbouncer/userlist.txt
+          echo '"pgbouncer_admin" "'"$PGBOUNCER_ADMIN_PASSWORD"'"' >> /etc/pgbouncer/userlist.txt
+          chmod 600 /etc/pgbouncer/userlist.txt
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pgbouncer-secret
+              key: db_password
+        - name: PGBOUNCER_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pgbouncer-secret
+              key: admin_password
+        volumeMounts:
+        - name: pgbouncer-auth
+          mountPath: /etc/pgbouncer
+
+      containers:
+      - name: pgbouncer
+        image: pgbouncer/pgbouncer:1.22.0
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: postgres
+          containerPort: 5432
+
+        env:
+        # PgBouncer reads DB_HOST from env when using templated config
+        - name: DB_HOST_PRIMARY
+          valueFrom:
+            secretKeyRef:
+              name: pgbouncer-secret
+              key: db_host_primary
+        - name: DB_HOST_REPLICA
+          valueFrom:
+            secretKeyRef:
+              name: pgbouncer-secret
+              key: db_host_replica
+
+        volumeMounts:
+        - name: pgbouncer-config
+          mountPath: /etc/pgbouncer/pgbouncer.ini
+          subPath: pgbouncer.ini
+          readOnly: true
+        - name: pgbouncer-auth
+          mountPath: /etc/pgbouncer
+        - name: postgres-ca
+          mountPath: /etc/pgbouncer/server-ca.crt
+          subPath: ca.crt
+          readOnly: true
+
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+
+        livenessProbe:
+          tcpSocket:
+            port: 5432
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          exec:
+            # SHOW POOLS succeeds when PgBouncer is accepting connections
+            command: ["psql", "-h", "127.0.0.1", "-p", "5432", "-U", "pgbouncer_admin", "pgbouncer", "-c", "SHOW POOLS;"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 70   # pgbouncer user
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+
+      volumes:
+      - name: pgbouncer-config
+        configMap:
+          name: pgbouncer-config
+      - name: pgbouncer-auth
+        emptyDir:
+          medium: Memory   # tmpfs — plaintext auth file never hits disk
+      - name: postgres-ca
+        secret:
+          secretName: postgres-tls-ca   # CA cert for TLS verification to Postgres
+
+---
+# 4. Service: PgBouncer (write port — all mutations)
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer-write
+  namespace: valueskins
+  labels:
+    app: pgbouncer
+spec:
+  selector:
+    app: pgbouncer
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+# 5. Service: PgBouncer read (point to read DB in pgbouncer.ini)
+# App code uses pgbouncer-read:5432 for SELECT queries,
+# pgbouncer-write:5432 for INSERT/UPDATE/DELETE.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer-read
+  namespace: valueskins
+  labels:
+    app: pgbouncer
+    role: read
+spec:
+  selector:
+    app: pgbouncer
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+# 6. HPA: scale PgBouncer on CPU (connection pressure shows as CPU)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pgbouncer-hpa
+  namespace: valueskins
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pgbouncer
+  minReplicas: 3
+  maxReplicas: 12   # 12 pods × 5000 = 60,000 app connections; Postgres sees ≤300
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# 7. PodDisruptionBudget: always keep 2 PgBouncer pods during drain/rollout
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pgbouncer-pdb
+  namespace: valueskins
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: pgbouncer
+
+---
+# 8. NetworkPolicy: only API gateway pods can reach PgBouncer
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pgbouncer-network-policy
+  namespace: valueskins
+spec:
+  podSelector:
+    matchLabels:
+      app: pgbouncer
+  policyTypes: [Ingress, Egress]
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    - podSelector:
+        matchLabels:
+          app: valueskins-matching
+    - podSelector:
+        matchLabels:
+          app: valueskins-marketplace
+    - podSelector:
+        matchLabels:
+          app: waitlist-service
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  # Allow connections to Postgres primary and replica
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# 9. ServiceMonitor: PgBouncer metrics to Prometheus
+# Requires pgbouncer-exporter sidecar (add to deployment containers if needed)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pgbouncer-monitor
+  namespace: valueskins
+  labels:
+    app: pgbouncer
+spec:
+  selector:
+    matchLabels:
+      app: pgbouncer
+  endpoints:
+  - port: postgres
+    interval: 30s
+    path: /metrics
