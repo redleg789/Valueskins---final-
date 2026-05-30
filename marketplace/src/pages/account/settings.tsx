@@ -80,57 +80,14 @@ export default function AccountSettings() {
   });
 
   useEffect(() => {
-    const backendUrl = typeof window !== 'undefined'
-      ? '/api/backend'
-      : (process.env.BACKEND_URL || 'http://localhost:8080');
+    // Check if user has session cookie
+    const hasSession = document.cookie.includes('valueskins_session');
+    if (!hasSession) {
+      router.push('/auth/login');
+      return;
+    }
 
-    (async () => {
-      try {
-        // Get current account info
-        const authRes = await api.auth.getMe();
-        if (authRes.error) throw new Error('Unauthorized');
-
-        const accountData = authRes.data;
-        setAccount(accountData);
-        setDisplayName(accountData?.display_name || '');
-        setAvatarUrl(accountData?.avatar_url || '');
-
-        // Load creator profile if user is a creator
-        const isCreator = accountData?.modules?.some((m: any) => m.code === 'valueskin' && m.is_active);
-        if (isCreator) {
-          const profileRes = await fetch(`${backendUrl}/personas/me/profile`, { credentials: 'include' });
-          if (profileRes.ok) {
-            const creatorData = await profileRes.json();
-            if (creatorData) {
-              setProfile({
-                username: creatorData.username || '',
-                bio: creatorData.bio || '',
-                location: creatorData.location || '',
-                country: creatorData.country || '',
-                niche: creatorData.niche || '',
-                instagram: creatorData.instagram_handle || '',
-                tiktok: creatorData.tiktok_handle || '',
-                youtube: creatorData.youtube_handle || '',
-                twitter: creatorData.twitter_handle || '',
-                linkedin: creatorData.linkedin_handle || '',
-                website: creatorData.website_url || '',
-                followers_count: creatorData.followers_count || 0,
-                engagement_rate: creatorData.engagement_rate || 0,
-                pitch_video_url: creatorData.pitch_video_url || '',
-                pitch_text: creatorData.pitch_text || '',
-                open_for_work: creatorData.open_for_work ?? true,
-                min_deal_value: creatorData.min_deal_value || 500,
-                response_time: creatorData.response_time_hours?.toString() || '24',
-              });
-            }
-          }
-        }
-      } catch (err) {
-        router.push('/auth/login');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    setLoading(false);
   }, [router]);
 
   const handleSaveProfile = async () => {
