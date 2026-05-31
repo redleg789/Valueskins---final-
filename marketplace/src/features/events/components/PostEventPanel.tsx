@@ -37,9 +37,33 @@ export default function PostEventPanel({ eventId }: { eventId: string }) {
   const [suggInput, setSuggInput] = useState('');
 
   useEffect(() => {
-    fetch(`/api/event-os/ratings/${eventId}/user`).then(r => r.ok && r.json().then(d => { if (d.rating) { setRating(d.rating); setReview(d.review || ''); setSubmitted(true); } }));
-    fetch(`/api/event-os/ratings/${eventId}/suggestions`).then(r => r.ok && r.json().then(d => setSuggestions(d.suggestions || [])));
-    fetch(`/api/event-os/connections/${eventId}/requests`).then(r => r.ok && r.json().then(d => setRequests(d.requests || [])));
+    (async () => {
+      try {
+        const r1 = await fetch(`/api/event-os/ratings/${eventId}/user`);
+        if (r1.ok) {
+          const d = await r1.json();
+          if (d.rating) {
+            setRating(d.rating);
+            setReview(d.review || '');
+            setSubmitted(true);
+          }
+        }
+      } catch {}
+      try {
+        const r2 = await fetch(`/api/event-os/ratings/${eventId}/suggestions`);
+        if (r2.ok) {
+          const d = await r2.json();
+          setSuggestions(d.suggestions || []);
+        }
+      } catch {}
+      try {
+        const r3 = await fetch(`/api/event-os/connections/${eventId}/requests`);
+        if (r3.ok) {
+          const d = await r3.json();
+          setRequests(d.requests || []);
+        }
+      } catch {}
+    })();
   }, [eventId]);
 
   async function submitRating() {
@@ -78,7 +102,13 @@ export default function PostEventPanel({ eventId }: { eventId: string }) {
       body: JSON.stringify({ suggestion: suggInput.trim() }),
     });
     setSuggInput('');
-    fetch(`/api/event-os/ratings/${eventId}/suggestions`).then(r => r.ok && r.json().then(d => setSuggestions(d.suggestions || [])));
+    try {
+      const r = await fetch(`/api/event-os/ratings/${eventId}/suggestions`);
+      if (r.ok) {
+        const d = await r.json();
+        setSuggestions(d.suggestions || []);
+      }
+    } catch {}
   }
 
   return (
