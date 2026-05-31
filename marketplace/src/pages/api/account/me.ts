@@ -78,13 +78,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       created_at: new Date().toISOString(),
     };
 
-    // Get active modules
-    const modulesResult = await query(
-      `SELECT code, is_active FROM account_modules WHERE account_id = $1`,
-      [user.account_id]
-    );
-
-    const modules = modulesResult.rows || [];
+    // Get active modules (if table exists)
+    let modules = [];
+    try {
+      const modulesResult = await query(
+        `SELECT code, is_active FROM account_modules WHERE account_id = $1`,
+        [user.account_id]
+      );
+      modules = modulesResult.rows || [];
+    } catch (err) {
+      // account_modules table doesn't exist yet, default to empty modules
+      modules = [];
+    }
 
     return res.status(200).json({
       data: {
