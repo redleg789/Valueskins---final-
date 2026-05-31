@@ -1165,9 +1165,9 @@ export default function MarketplaceDemoPage() {
     // Firebase always active
     if (firebaseState.notifications.length > 0) {
       setFirebaseNotifications(firebaseState.notifications);
-      const newNotifs = firebaseState.notifications.filter(n => !n.read);
+      const newNotifs = firebaseState.notifications.filter((n: any) => !n.read);
       if (newNotifs.length > 0) {
-        newNotifs.forEach(n => {
+        newNotifs.forEach((n: any) => {
           const msg = n.type === 'campaign' ? `New campaign: ${n.message}` : n.type === 'application' ? `New application: ${n.message}` : `Message: ${n.message}`;
           setNotifications(prev => [{ id: parseInt(n.id) || Date.now(), type: n.type, text: msg, time: 'just now', read: false }, ...prev.slice(0, 9)]);
           // Feature 3: Show toast notification
