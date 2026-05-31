@@ -80,7 +80,28 @@ export default function AccountSettings() {
   });
 
   useEffect(() => {
-    setLoading(false);
+    const loadAccount = async () => {
+      try {
+        const res = await api.auth.getMe();
+        if (res.error) {
+          console.error('Failed to load account:', res.error);
+          setLoading(false);
+          return;
+        }
+
+        setAccount(res.data as any);
+        if (res.data) {
+          setDisplayName(res.data.display_name || '');
+          setAvatarUrl(res.data.avatar_url || '');
+        }
+        setLoading(false);
+      } catch (err: any) {
+        console.error('Error loading account:', err);
+        setLoading(false);
+      }
+    };
+
+    loadAccount();
   }, []);
 
   const handleSaveProfile = async () => {
