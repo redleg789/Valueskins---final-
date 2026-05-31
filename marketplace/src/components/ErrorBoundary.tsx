@@ -1,82 +1,63 @@
-'use client';
-
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React from 'react';
+import { C } from '@/theme/colors';
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
+  error?: Error;
 }
 
-/**
- * Error Boundary — prevents entire app from crashing if one component fails.
- * Catches rendering errors, logs them, shows fallback UI.
- * Wrap around route segments or feature areas.
- */
-export class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // In production: never expose stack traces to browser console (visible to all users).
-    // Send sanitized report to backend observability endpoint silently.
-    const isDev = process.env.NODE_ENV === 'development';
-
-    if (isDev) {
-      // Full detail only in local dev
-      console.error('[ErrorBoundary]', error, errorInfo);
-    }
-
-    // Fire-and-forget to backend — doesn't block UI recovery
-    fetch('/api/v1/observability/errors', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: error.message,         // No stack — avoids leaking internal paths
-        component_stack: isDev ? errorInfo.componentStack : undefined,
-        url: typeof window !== 'undefined' ? window.location.pathname : '',
-        timestamp: new Date().toISOString(),
-      }),
-    }).catch(() => { /* observability failure must never crash the app */ });
+  componentDidCatch(error: Error) {
+    console.error('Error caught by boundary:', error);
   }
 
   render() {
     if (this.state.hasError) {
       return this.props.fallback || (
         <div style={{
-          padding: '2rem',
-          textAlign: 'center',
-          minHeight: '200px',
+          minHeight: '100vh',
+          background: C.bg,
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
+          padding: '20px',
         }}>
-          <h2 style={{ marginBottom: '1rem' }}>Something went wrong</h2>
-          <p style={{ color: '#666', marginBottom: '1rem' }}>
-            This section encountered an error. The rest of the app is still working.
-          </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: '1px solid #ccc',
-              cursor: 'pointer',
-            }}
-          >
-            Try Again
-          </button>
+          <div style={{ textAlign: 'center', color: C.text }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>
+              Something went wrong
+            </h1>
+            <p style={{ color: C.textSecondary, marginBottom: '24px' }}>
+              Please try refreshing the page
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '10px 20px',
+                background: C.primary,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       );
     }
