@@ -80,22 +80,8 @@ export default function AccountSettings() {
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch('/api/auth/check');
-        if (!res.ok) {
-          router.push('/auth/login');
-          return;
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error('Auth check failed:', err);
-        router.push('/auth/login');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    setLoading(false);
+  }, []);
 
   const handleSaveProfile = async () => {
     setSaving(true);
