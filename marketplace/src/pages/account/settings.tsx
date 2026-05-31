@@ -120,50 +120,27 @@ export default function AccountSettings() {
     setSuccess('');
     try {
       // Save basic account info (display_name, avatar)
-      const basicRes = await api.account.updateAccount({
-        display_name: displayName,
-        avatar_url: avatarUrl || undefined,
+      const res = await fetch('/api/account/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          display_name: displayName,
+          avatar_url: avatarUrl || undefined,
+        }),
       });
-      if (basicRes.error) throw new Error(basicRes.error);
 
-      // Save creator profile if user is a creator
-      const isCreator = account?.modules?.some(m => m.code === 'valueskin' && m.is_active);
-      if (isCreator && profile) {
-        const backendUrl = typeof window !== 'undefined'
-          ? '/api/backend'
-          : (process.env.BACKEND_URL || 'http://localhost:8080');
-
-        const creatorRes = await fetch(`${backendUrl}/personas/me/profile`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            display_name: displayName,
-            username: profile.username,
-            bio: profile.bio,
-            location: profile.location,
-            country: profile.country,
-            niche: profile.niche,
-            instagram_handle: profile.instagram,
-            tiktok_handle: profile.tiktok,
-            youtube_handle: profile.youtube,
-            twitter_handle: profile.twitter,
-            linkedin_handle: profile.linkedin,
-            website_url: profile.website,
-            followers_count: profile.followers_count,
-            engagement_rate: profile.engagement_rate,
-            pitch_video_url: profile.pitch_video_url,
-            pitch_text: profile.pitch_text,
-            open_for_work: profile.open_for_work,
-            min_deal_value: profile.min_deal_value,
-            response_time_hours: parseInt(profile.response_time || '24'),
-          }),
-        });
-        if (!creatorRes.ok) {
-          const data = await creatorRes.json().catch(() => ({}));
-          throw new Error(data.error || `Failed to save creator profile (${creatorRes.status})`);
-        }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to save profile (${res.status})`);
       }
+
+      const result = await res.json();
+      setAccount(prev => prev ? {
+        ...prev,
+        display_name: result.data.display_name,
+        avatar_url: result.data.avatar_url,
+      } : prev);
 
       setSuccess('Profile updated successfully');
     } catch (err: any) {
