@@ -1,0 +1,4 @@
+Contact: security@valueskins.com
+Expires: 2027-05-31T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://valueskins.com/.well-known/security.txt

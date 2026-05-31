@@ -1,6 +1,8 @@
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '@/context/AuthContext';
 import Link from 'next/link';
+import Footer from '@/components/Footer';
+import CookieConsent from '@/components/CookieConsent';
 import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -32,6 +34,8 @@ export default function App({ Component, pageProps }: AppProps) {
         ValueSkins
       </Link>
       <Component {...pageProps} />
+      <Footer />
+      <CookieConsent />
     </AuthProvider>
   );
 }

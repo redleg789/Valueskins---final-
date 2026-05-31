@@ -1,0 +1,15 @@
+# ValueSkins robots.txt
+# Allow search engines to index public pages
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /account/settings
+Disallow: /profile/
+
+# Sitemap
+Sitemap: https://valueskins.com/sitemap.xml
+
+# Crawl delay (ms)
+Crawl-delay: 1
