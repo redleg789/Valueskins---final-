@@ -1,87 +1,55 @@
-// Business logic constants
-export const WORKFLOW_PHASES = {
-  PENDING: 'pending',
-  COUNTER: 'counter',
-  ACCEPTED: 'accepted',
-  SOFTHOLD: 'softhold',
-  CHECKLIST: 'checklist',
-  APPROVED: 'approved',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled'
-} as const;
+// Security & Session
+export const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+export const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+export const SESSION_COOKIE_NAME = 'valueskins_session';
+export const SESSION_COOKIE_PATH = '/';
+export const SESSION_COOKIE_SECURE = process.env.NODE_ENV === 'production';
+export const SESSION_COOKIE_SAME_SITE = 'lax' as const;
 
-export const USER_ROLES = {
-  CREATOR: 'creator',
-  BRAND: 'brand',
-  HOST: 'host',
-  EXPLORER: 'explorer',
-  ADMIN: 'admin'
-} as const;
+// Rate Limiting
+export const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+export const RATE_LIMIT_REQUESTS = 100;
+export const AUTH_RATE_LIMIT_REQUESTS = 5;
+export const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
-export const CREATOR_ROLES = {
-  DJ: 'dj',
-  PERFORMER: 'performer',
-  ENTERTAINER: 'entertainer',
-  VENDOR: 'vendor',
-  STAFF: 'staff'
-} as const;
+// Validation
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 128;
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 50;
+export const DISPLAY_NAME_MAX_LENGTH = 255;
+export const EMAIL_MAX_LENGTH = 255;
 
-export const RATE_LIMITS = {
-  LOGIN_ATTEMPTS_PER_HOUR: 20,
-  LOGIN_LOCKOUT_MINUTES: 15,
-  FAILED_LOGIN_THRESHOLD: 5,
-  SIGNUP_PER_IP_PER_HOUR: 10,
-  API_CALLS_PER_MINUTE: 100,
-  LLM_CALLS_PER_DAY: 100
-} as const;
+// Cache TTLs (in milliseconds)
+export const CACHE_SESSION_TTL = 5 * 60 * 1000; // 5 minutes
+export const CACHE_USER_TTL = 10 * 60 * 1000; // 10 minutes
+export const CACHE_DEAL_TTL = 15 * 60 * 1000; // 15 minutes
 
-export const TIMEOUT_DURATIONS = {
-  SESSION_ABSOLUTE_MINUTES: 30,
-  SESSION_IDLE_MINUTES: 15,
-  PASSWORD_RESET_TOKEN_MINUTES: 15,
-  API_REQUEST_SECONDS: 30
-} as const;
+// Pagination
+export const DEFAULT_PAGE_SIZE = 20;
+export const MAX_PAGE_SIZE = 100;
+export const MIN_PAGE_SIZE = 1;
 
-export const DATA_RETENTION = {
-  SESSION_LOGS_DAYS: 30,
-  AUDIT_LOGS_DAYS: 365,
-  BACKUP_RETENTION_DAYS: 90
-} as const;
+// File Upload
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-export const FILE_CONSTRAINTS = {
-  MAX_FILE_SIZE_MB: 50,
-  MAX_IMAGE_SIZE_MB: 10,
-  MAX_VIDEO_SIZE_MB: 500,
-  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/webp']
-} as const;
+// Data Retention (in milliseconds)
+export const DATA_RETENTION_LOGS = 30 * 24 * 60 * 60 * 1000; // 30 days
+export const DATA_RETENTION_ANALYTICS = 90 * 24 * 60 * 60 * 1000; // 90 days
+export const DATA_RETENTION_BACKUPS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
-export const ENCRYPTION = {
-  ALGORITHM: 'aes-256-gcm',
-  BCRYPT_ROUNDS: 12
-} as const;
+// API Response
+export const API_RESPONSE_TIMEOUT_MS = 30 * 1000; // 30 seconds
+export const API_MAX_REQUEST_BODY_SIZE = '10kb';
 
-export const PAGINATION = {
-  DEFAULT_PAGE_SIZE: 50,
-  MAX_PAGE_SIZE: 500
-} as const;
+// URLs
+export const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  process.env.NEXT_PUBLIC_APP_URL || 'https://valueskins-final.vercel.app',
+];
 
-export const CACHE_DURATIONS = {
-  USER_PROFILE_MINUTES: 5,
-  FINANCIAL_CONFIG_MINUTES: 5,
-  CREATOR_EVENTS_MINUTES: 10
-} as const;
-
-export const COMPLIANCE = {
-  GDPR_NOTIFICATION_DAYS: 3,
-  CCPA_RESPONSE_DAYS: 45,
-  DATA_DELETION_DAYS: 30,
-  BREACH_NOTIFICATION_HOURS: 72
-} as const;
-
-export const FEATURE_FLAGS = {
-  ENABLE_LLM_FEATURES: true,
-  ENABLE_BULK_OPERATIONS: true,
-  ENABLE_QA_WORKFLOW: true,
-  ENABLE_EXCLUSIVITY_CHECKS: true,
-  MAINTENANCE_MODE: false
-} as const;
+// Email
+export const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@valueskins.com';
+export const EMAIL_SUPPORT = process.env.EMAIL_SUPPORT || 'support@valueskins.com';

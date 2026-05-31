@@ -1,64 +1,67 @@
-import React from 'react';
-import { C } from '@/theme/colors';
+'use client';
 
-interface Props {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
+import React, { ReactNode } from 'react';
+import { logger } from '@/lib/logger';
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
+export class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error) {
-    console.error('Error caught by boundary:', error);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    logger.error('React Error Boundary caught error', error, {
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback || (
-        <div style={{
-          minHeight: '100vh',
-          background: C.bg,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px',
-        }}>
-          <div style={{ textAlign: 'center', color: C.text }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '12px' }}>
-              Something went wrong
-            </h1>
-            <p style={{ color: C.textSecondary, marginBottom: '24px' }}>
-              Please try refreshing the page
-            </p>
+      return (
+        this.props.fallback || (
+          <div
+            style={{
+              padding: '40px',
+              background: '#fee',
+              borderRadius: '8px',
+              color: '#c00',
+              fontFamily: 'monospace',
+            }}
+          >
+            <h2>Something went wrong</h2>
+            <p>{this.state.error?.message}</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => this.setState({ hasError: false })}
               style={{
-                padding: '10px 20px',
-                background: C.primary,
+                padding: '8px 16px',
+                background: '#c00',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '4px',
                 cursor: 'pointer',
-                fontWeight: 600,
               }}
             >
-              Refresh
+              Try again
             </button>
           </div>
-        </div>
+        )
       );
     }
 

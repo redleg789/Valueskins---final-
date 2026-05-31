@@ -1,114 +1,74 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '@/lib/db';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { withApiHandler } from '@/lib/api-handler';
+import { setupCors } from '@/lib/cors';
+import { queryOne } from '@/lib/db-pool';
+import { sessionCache } from '@/lib/cache';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+interface AccountResponse {
+  id?: string;
+  email?: string;
+  display_name?: string;
+  avatar_url?: string | null;
+  error?: string;
+}
+
+async function handler(req: NextApiRequest, res: NextApiResponse<AccountResponse>) {
+  if (setupCors(req, res)) return;
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     const sessionToken = req.cookies.valueskins_session;
-
     if (!sessionToken) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const sessionResult = await query(
-      'SELECT user_id, is_active, expires_at FROM auth_sessions WHERE id = $1',
+    // Check cache first
+    const cached = sessionCache.get(`session:${sessionToken}`);
+    if (cached) {
+      return res.status(200).json(cached);
+    }
+
+    // Query database
+    const session = await queryOne(
+      'SELECT user_id FROM auth_sessions WHERE id = $1 AND is_active = TRUE',
       [sessionToken]
     );
 
-    if (sessionResult.rows.length === 0) {
-      return res.status(401).json({ error: 'Session not found' });
-    }
-
-    const session = sessionResult.rows[0];
-    const expiresAt = new Date(session.expires_at);
-
-    if (!session.is_active || expiresAt < new Date()) {
+    if (!session) {
+      res.setHeader('Set-Cookie', 'valueskins_session=; HttpOnly; Path=/; Max-Age=0');
       return res.status(401).json({ error: 'Session expired' });
     }
 
-    const userId = session.user_id;
-
-    const userResult = await query(
-      `SELECT
-        id,
-        display_name,
-        avatar_url,
-        username,
-        instagram_user_id as google_sub,
-        account_id
-      FROM users WHERE id = $1`,
-      [userId]
+    const user = await queryOne(
+      'SELECT id, email, display_name, avatar_url FROM users WHERE id = $1',
+      [session.user_id]
     );
 
-    if (userResult.rows.length === 0) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const user = userResult.rows[0];
-
-    // Get account data
-    const accountResult = await query(
-      `SELECT
-        id,
-        email,
-        phone,
-        email_verified,
-        phone_verified,
-        display_name,
-        avatar_url,
-        onboarding_stage,
-        preferences,
-        totp_enabled,
-        created_at
-      FROM accounts WHERE id = $1`,
-      [user.account_id]
-    );
-
-    const account = accountResult.rows[0] || {
-      id: user.account_id,
-      email: null,
-      phone: null,
-      email_verified: false,
-      phone_verified: false,
-      display_name: user.display_name,
-      avatar_url: user.avatar_url,
-      onboarding_stage: 'pending',
-      preferences: [],
-      modules: [],
-      totp_enabled: false,
-      created_at: new Date().toISOString(),
+    const response = {
+      id: user.id,
+      email: user.email,
+      display_name: user.display_name || '',
+      avatar_url: user.avatar_url || null,
     };
 
-    // Get active modules (if table exists)
-    let modules = [];
-    try {
-      const modulesResult = await query(
-        `SELECT code, is_active FROM account_modules WHERE account_id = $1`,
-        [user.account_id]
-      );
-      modules = modulesResult.rows || [];
-    } catch (err) {
-      // account_modules table doesn't exist yet, default to empty modules
-      modules = [];
-    }
+    // Cache for 5 minutes
+    sessionCache.set(`session:${sessionToken}`, response, 5 * 60 * 1000);
 
-    return res.status(200).json({
-      data: {
-        id: account.id,
-        email: account.email,
-        phone: account.phone,
-        email_verified: account.email_verified,
-        phone_verified: account.phone_verified,
-        display_name: account.display_name,
-        avatar_url: account.avatar_url,
-        onboarding_stage: account.onboarding_stage,
-        preferences: account.preferences || [],
-        modules: modules.map((m: any) => ({ code: m.code, is_active: m.is_active })),
-        totp_enabled: account.totp_enabled,
-        created_at: account.created_at,
-      },
-    });
+    return res.status(200).json(response);
   } catch (error) {
-    console.error('Account me endpoint error:', error);
+    console.error('Account ME error:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 }
+
+export default withApiHandler(handler, {
+  allowedMethods: ['GET'],
+  rateLimit: { maxRequests: 100, windowMs: 60000 },
+});

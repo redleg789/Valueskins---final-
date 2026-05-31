@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '@/context/AuthContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import Link from 'next/link';
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
@@ -7,7 +8,8 @@ import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
       <Link
         href="/"
         style={{
@@ -37,5 +39,6 @@ export default function App({ Component, pageProps }: AppProps) {
       <Footer />
       <CookieConsent />
     </AuthProvider>
+    </ErrorBoundary>
   );
 }

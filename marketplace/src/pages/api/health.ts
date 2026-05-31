@@ -1,20 +1,51 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '@/lib/db';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { setupCors } from '@/lib/cors';
+import { queryOne } from '@/lib/db-pool';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+interface HealthResponse {
+  status: 'ok' | 'degraded' | 'down';
+  timestamp: string;
+  checks: {
+    database: 'healthy' | 'unhealthy';
+    api: 'healthy' | 'unhealthy';
+  };
+  uptime: number;
+}
+
+const startTime = Date.now();
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<HealthResponse>
+) {
+  if (setupCors(req, res)) return;
+
+  const checks = {
+    database: 'unhealthy' as const,
+    api: 'healthy' as const,
+  };
+
   try {
-    const dbHealth = await query('SELECT NOW()');
-    
-    return res.status(200).json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      database: dbHealth.rows.length > 0 ? 'connected' : 'disconnected',
-    });
+    // Check database connectivity
+    const result = await queryOne('SELECT 1 as ping');
+    if (result?.ping === 1) {
+      checks.database = 'healthy';
+    }
   } catch (error) {
-    return res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      database: 'disconnected',
-    });
+    console.error('Health check database error:', error);
   }
+
+  const status =
+    checks.database === 'healthy' && checks.api === 'healthy'
+      ? 'ok'
+      : 'degraded';
+
+  const response: HealthResponse = {
+    status,
+    timestamp: new Date().toISOString(),
+    checks,
+    uptime: Date.now() - startTime,
+  };
+
+  res.status(status === 'ok' ? 200 : 503).json(response);
 }
