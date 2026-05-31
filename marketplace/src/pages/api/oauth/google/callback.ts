@@ -105,13 +105,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sessionToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
+    console.log('OAuth callback - Creating session for user:', userId);
     await query(
       `INSERT INTO auth_sessions (id, user_id, expires_at) VALUES ($1, $2, $3)`,
       [sessionToken, userId, expiresAt]
     );
+    console.log('OAuth callback - Session created:', sessionToken.substring(0, 8) + '...');
 
     const cookieValue = `valueskins_session=${sessionToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
     res.setHeader('Set-Cookie', cookieValue);
+    console.log('OAuth callback - Cookie set:', cookieValue.substring(0, 50) + '...');
 
     // Check if onboarding is complete
     const accountCheck = await query(

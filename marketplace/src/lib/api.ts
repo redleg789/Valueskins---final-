@@ -214,6 +214,12 @@ class AuthClient {
 class AccountClient {
     constructor(private http: HttpClient) {}
 
+    async getMe() {
+        return this.http.request<AccountResponse>('/api/account/me', {
+            credentials: 'include',
+        });
+    }
+
     async getModules() {
         return this.http.request<{ modules: ModuleSummary[] }>('/api/v1/account/modules', {
             credentials: 'include',

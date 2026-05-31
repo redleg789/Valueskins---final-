@@ -82,7 +82,7 @@ export default function AccountSettings() {
   useEffect(() => {
     const loadAccount = async () => {
       try {
-        const res = await api.auth.getMe();
+        const res = await api.account.getMe();
         if (res.error) {
           console.error('Failed to load account:', res.error);
           setLoading(false);
