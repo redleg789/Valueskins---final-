@@ -1,138 +1,53 @@
 'use client';
-import { useState, CSSProperties } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
+import Link from 'next/link';
+import { C } from '@/theme/colors';
 
-const C = {
-  primary: '#2563EB',
-  bg: '#0f172a',
-  surface: '#1e293b',
-  text: '#f8fafc',
-  textSecondary: '#cbd5e1',
-  border: '#334155',
-  error: '#ef4444',
-  success: '#22c55e',
-};
-
-export default function DealsFeedPage() {
-  const router = useRouter();
-
-  const containerStyle: CSSProperties = {
-    minHeight: '100vh',
-    background: C.bg,
-    color: C.text,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    padding: '32px 20px',
-  };
-
-  const innerContainerStyle: CSSProperties = {
-    maxWidth: '1200px',
-    margin: '0 auto',
-  };
-
-  const headerStyle: CSSProperties = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '32px',
-  };
-
-  const titleStyle: CSSProperties = {
-    fontSize: '32px',
-    fontWeight: '700',
-  };
-
-  const rankingButtonStyle: CSSProperties = {
-    padding: '10px 24px',
-    background: C.primary,
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  };
-
-  const gridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '24px',
-  };
-
-  const cardStyle: CSSProperties = {
-    background: C.surface,
-    border: `1px solid ${C.border}`,
-    borderRadius: '12px',
-    padding: '24px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  };
-
-  const titleCardStyle: CSSProperties = {
-    fontSize: '18px',
-    fontWeight: '600',
-    marginBottom: '12px',
-  };
-
-  const descriptionStyle: CSSProperties = {
-    fontSize: '14px',
-    color: C.textSecondary,
-    marginBottom: '16px',
-  };
-
-  const badgeStyle = (status: string): CSSProperties => {
-    const colors: Record<string, [string, string]> = {
-      active: ['#dbeafe', '#0284c7'],
-      completed: ['#dcfce7', '#16a34a'],
-      pending: ['#fef3c7', '#d97706'],
-    };
-    const [bg, text] = colors[status] || colors.pending;
-    return {
-      display: 'inline-block',
-      padding: '4px 8px',
-      background: bg,
-      color: text,
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontWeight: '600',
-    };
-  };
-
-  const placeholderStyle: CSSProperties = {
-    gridColumn: '1 / -1',
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: C.textSecondary,
-  };
-
+export default function DealsFeed() {
   return (
-    <>
-      <Head>
-        <title>Deals Feed - ValueSkins</title>
-      </Head>
+    <div style={{ minHeight: '100vh', background: C.bg, padding: '40px 20px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 800, color: C.text, marginBottom: '8px' }}>Active Deals</h1>
+          <p style={{ fontSize: '16px', color: C.textSecondary' }}>Browse brand opportunities and creator collaborations</p>
+        </div>
 
-      <div style={containerStyle}>
-        <div style={innerContainerStyle}>
-          <div style={headerStyle}>
-            <h1 style={titleStyle}>💼 Deals Feed</h1>
-            <button
-              onClick={() => router.push('/deals/rankings')}
-              style={rankingButtonStyle}
-            >
-              🏆 View Rankings
-            </button>
-          </div>
-
-          <div style={gridStyle}>
-            <div style={placeholderStyle}>
-              <p style={{ margin: 0 }}>Deals will appear here once they are created and matched.</p>
-              <p style={{ margin: '12px 0 0 0', fontSize: '12px' }}>
-                Check back soon for active opportunities!
-              </p>
+        <div style={{ display: 'grid', gap: '16px' }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: '12px',
+              padding: '24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: C.text, margin: '0 0 8px 0' }}>Deal Opportunity #{i}</h3>
+                <p style={{ fontSize: '14px', color: C.textSecondary, margin: 0 }}>Brand collaboration • $500-2000 budget</p>
+              </div>
+              <button style={{
+                padding: '10px 20px',
+                background: C.primary,
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 600,
+              }}>
+                View Details
+              </button>
             </div>
-          </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: '40px', textAlign: 'center', color: C.textSecondary }}>
+          <p>No more deals. Check back soon!</p>
+          <Link href="/marketplace" style={{ color: C.primary, textDecoration: 'none', fontWeight: 600 }}>
+            Back to Marketplace
+          </Link>
         </div>
       </div>
-    </>
+    </div>
   );
 }
