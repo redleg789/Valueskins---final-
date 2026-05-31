@@ -82,17 +82,27 @@ export default function AccountSettings() {
   useEffect(() => {
     const loadAccount = async () => {
       try {
-        const res = await api.account.getMe();
-        if (res.error) {
-          console.error('Failed to load account:', res.error);
+        const res = await fetch('/api/account/me', {
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          console.error('Failed to load account:', res.status);
           setLoading(false);
           return;
         }
 
-        setAccount(res.data as any);
-        if (res.data) {
-          setDisplayName(res.data.display_name || '');
-          setAvatarUrl(res.data.avatar_url || '');
+        const json = await res.json();
+        if (json.error) {
+          console.error('Failed to load account:', json.error);
+          setLoading(false);
+          return;
+        }
+
+        setAccount(json.data as any);
+        if (json.data) {
+          setDisplayName(json.data.display_name || '');
+          setAvatarUrl(json.data.avatar_url || '');
         }
         setLoading(false);
       } catch (err: any) {
