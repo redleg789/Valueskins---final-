@@ -110,10 +110,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       [sessionToken, userId, expiresAt]
     );
 
-    res.setHeader('Set-Cookie', [
-      `valueskins_session=${sessionToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`,
-      ...(process.env.NODE_ENV === 'production' ? ['Secure'] : []),
-    ]);
+    const cookieValue = `valueskins_session=${sessionToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;
+    res.setHeader('Set-Cookie', cookieValue);
 
     // Check if onboarding is complete
     const accountCheck = await query(

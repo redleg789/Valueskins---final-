@@ -80,14 +80,21 @@ export default function AccountSettings() {
   });
 
   useEffect(() => {
-    // Check if user has session cookie
-    const hasSession = document.cookie.includes('valueskins_session');
-    if (!hasSession) {
-      router.push('/auth/login');
-      return;
-    }
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/check');
+        if (!res.ok) {
+          router.push('/auth/login');
+          return;
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        router.push('/auth/login');
+      }
+    };
 
-    setLoading(false);
+    checkAuth();
   }, [router]);
 
   const handleSaveProfile = async () => {
