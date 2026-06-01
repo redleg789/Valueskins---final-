@@ -25,7 +25,7 @@ export default function AccountLocked() {
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto' }}>
       <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>Account locked</h1>
         <p style={{ fontSize: '15px', color: C.textSecondary, lineHeight: 1.5, marginBottom: '24px' }}>
           Too many failed login attempts. Your account has been temporarily locked for security reasons. Please try again later or request an unlock.

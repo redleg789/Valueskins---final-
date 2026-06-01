@@ -7,31 +7,31 @@ import { C } from '@/theme/colors';
 const MODULE_DETAILS: Record<string, { label: string; icon: string; desc: string; features: string[] }> = {
   explorer: {
     label: 'Explorer',
-    icon: '🧭',
+    icon: '',
     desc: 'Browse events, discover people, join communities',
     features: ['Browse & attend events', 'Discover people', 'Join communities', 'Purchase tickets'],
   },
   host: {
     label: 'Host',
-    icon: '🎤',
+    icon: '',
     desc: 'Create and manage events',
     features: ['Create events', 'Manage attendees', 'Configure tickets', 'View event analytics'],
   },
   valueskin: {
     label: 'ValueSkin',
-    icon: '⭐',
+    icon: '',
     desc: 'Creator profile and marketplace',
     features: ['Create ValueSkin profile', 'Browse marketplace', 'Apply to brand deals', 'Connect with brands'],
   },
   brand: {
     label: 'Brand',
-    icon: '🏢',
+    icon: '',
     desc: 'Discover and collaborate with creators',
     features: ['Brand profile', 'Discover creators', 'Create campaigns', 'Negotiate deals'],
   },
   community: {
     label: 'Community',
-    icon: '👥',
+    icon: '',
     desc: 'Create and moderate communities',
     features: ['Create communities', 'Manage members', 'Moderate content', 'Flag for review'],
   },

@@ -211,7 +211,7 @@ export default function MarketplacePage() {
           {/* Key Features Section */}
           <div style={{ marginTop: '48px' }}>
             <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '24px', textAlign: 'center' }}>
-              ✨ What's Included
+               What's Included
             </h2>
 
             <div style={featuresGridStyle}>

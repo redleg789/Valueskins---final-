@@ -204,12 +204,12 @@ export default function OnboardingCreator() {
           <p style={{ fontSize: '16px', color: C.textSecondary, textAlign: 'center', marginBottom: '48px' }}>Are you a creator or a brand?</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <button onClick={() => handleRoleSelect('creator')} style={{ padding: '32px 24px', background: C.surface, border: `2px solid ${C.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = 'rgba(56, 189, 248, 0.05)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎬</div>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>[CREATOR]</div>
               <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Creator</div>
               <p style={{ fontSize: '13px', color: C.textSecondary, margin: 0 }}>Share your content and collaborate with brands</p>
             </button>
             <button onClick={() => handleRoleSelect('brand')} style={{ padding: '32px 24px', background: C.surface, border: `2px solid ${C.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'center' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = 'rgba(56, 189, 248, 0.05)'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surface; }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>🏢</div>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>[BRAND]</div>
               <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>Brand</div>
               <p style={{ fontSize: '13px', color: C.textSecondary, margin: 0 }}>Find creators and launch campaigns</p>
             </button>

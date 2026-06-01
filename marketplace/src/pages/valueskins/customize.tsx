@@ -72,7 +72,7 @@ export default function ValueSkinsCustomizer() {
             />
             <div style={{ position: 'absolute', bottom: 24, left: 24, display: 'flex', gap: 16 }}>
               <button style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255, 251, 254, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid #F0E6FF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                🔍
+                
               </button>
               <button style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(255, 251, 254, 0.7)', backdropFilter: 'blur(12px)', border: '1px solid #F0E6FF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 360°
@@ -138,13 +138,13 @@ export default function ValueSkinsCustomizer() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <button style={{ background: C.surface, border: `1px solid ${C.outlineVariant}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s' }}>
               <div style={{ width: 48, height: 48, borderRadius: '50%', background: C.primaryContainer, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                🎨
+                
               </div>
               <span style={{ fontSize: 14, fontWeight: 500, color: C.onSurface }}>Texture Finish</span>
             </button>
             <button style={{ background: C.surface, border: `1px solid ${C.outlineVariant}`, borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, cursor: 'pointer', transition: 'all 0.2s' }}>
               <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#e8def7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-                ✨
+                
               </div>
               <span style={{ fontSize: 14, fontWeight: 500, color: C.onSurface }}>Glow Effects</span>
             </button>
@@ -153,7 +153,7 @@ export default function ValueSkinsCustomizer() {
           {/* Status */}
           <div style={{ background: 'rgba(248, 231, 242, 0.3)', border: `1px solid ${C.primaryContainer}`, borderRadius: 24, padding: 24 }}>
             <div style={{ display: 'flex', gap: 16 }}>
-              <span style={{ fontSize: 20 }}>ℹ️</span>
+              <span style={{ fontSize: 20 }}>ℹ</span>
               <div>
                 <p style={{ fontSize: 14, fontWeight: 500, color: C.onSurface }}>Changes Pending</p>
                 <p style={{ fontSize: 12, color: C.textMuted, marginTop: 8 }}>You have selected 'Rose Quartz' with high saturation. Preview is active.</p>

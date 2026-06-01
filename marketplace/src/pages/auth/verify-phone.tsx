@@ -84,7 +84,7 @@ export default function VerifyPhone() {
       <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center' }}>
         {step === 'phone' ? (
           <>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
             <h1 style={{ fontSize: '24px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>Verify your phone</h1>
             <p style={{ fontSize: '15px', color: C.textSecondary, marginBottom: '32px', lineHeight: 1.5 }}>
               Enter your phone number to receive a verification code.
@@ -121,7 +121,7 @@ export default function VerifyPhone() {
           </>
         ) : (
           <>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔐</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
             <h1 style={{ fontSize: '24px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>Enter verification code</h1>
             <p style={{ fontSize: '15px', color: C.textSecondary, marginBottom: '32px', lineHeight: 1.5 }}>
               Enter the 6-digit code sent to {phone}.

@@ -5,7 +5,7 @@ import type { IdentityAttestation, AttestationCategory, CredentialDisplayConfigu
 import { createAttestation, computeAuthenticityIndex, entryToAttestation, attestationToEntry, DEFAULT_DISPLAY_CONFIG } from '@/lib/credential-protocol';
 import { STICKER_MANIFEST } from '@/features/valueskins/core/stickers/sticker-manifest';
 
-// ─── Types ───────────────────────────────────────────────────────────
+//  Types 
 
 export type ValueSkinSlot = 'hobby' | 'passion' | 'profession';
 
@@ -44,73 +44,73 @@ export interface ProfessionBadge {
   emoji?: string;
 }
 
-// ─── Profession Definitions ───────────────────────────────────────────
+//  Profession Definitions 
 
 export const PROFESSION_BADGES: Record<string, ProfessionBadge> = {
-  'Software Engineer':      { id: 'swe',  label: 'Software Engineer',      abbreviation: 'SWE', color: '#0066CC', emoji: '💻' },
-  'Data Scientist':         { id: 'ds',   label: 'Data Scientist',         abbreviation: 'DS',  color: '#4A90E2', emoji: '📊' },
-  'Product Manager':        { id: 'pm',   label: 'Product Manager',        abbreviation: 'PM',  color: '#1A73E8', emoji: '🗂️' },
-  'DevOps Engineer':        { id: 'dev',  label: 'DevOps Engineer',        abbreviation: 'DEV', color: '#5F27CD', emoji: '⚙️' },
-  'UX/UI Designer':         { id: 'ux',   label: 'UX/UI Designer',         abbreviation: 'UX',  color: '#D63384', emoji: '🖌️' },
-  'Actor':                  { id: 'act',  label: 'Actor',                  abbreviation: 'ACT', color: '#E65100', emoji: '🎭' },
-  'Comedian':               { id: 'cmd',  label: 'Comedian',               abbreviation: 'COM', color: '#FF6F00', emoji: '🎤' },
-  'Musician':               { id: 'mus',  label: 'Musician',               abbreviation: 'MUS', color: '#C62828', emoji: '🎸' },
-  'Producer':               { id: 'prd',  label: 'Producer',               abbreviation: 'PRD', color: '#AD1457', emoji: '🎛️' },
-  'Director':               { id: 'dir',  label: 'Director',               abbreviation: 'DIR', color: '#6A1B9A', emoji: '🎬' },
-  'Screenwriter':           { id: 'sw',   label: 'Screenwriter',           abbreviation: 'SCW', color: '#4527A0', emoji: '📝' },
-  'Animator':               { id: 'anm',  label: 'Animator',               abbreviation: 'ANM', color: '#283593', emoji: '🎞️' },
-  'Voice Actor':            { id: 'va',   label: 'Voice Actor',            abbreviation: 'VA',  color: '#1565C0', emoji: '🎙️' },
-  'Doctor':                 { id: 'md',   label: 'Doctor',                 abbreviation: 'MD',  color: '#00897B', emoji: '🩺' },
-  'Surgeon':                { id: 'srg',  label: 'Surgeon',                abbreviation: 'SRG', color: '#00695C', emoji: '🔬' },
-  'Nurse':                  { id: 'rn',   label: 'Nurse',                  abbreviation: 'RN',  color: '#26A69A', emoji: '💉' },
-  'Pharmacist':             { id: 'rx',   label: 'Pharmacist',             abbreviation: 'RX',  color: '#00838F', emoji: '💊' },
-  'Therapist':              { id: 'thp',  label: 'Therapist',              abbreviation: 'THP', color: '#558B2F', emoji: '🛋️' },
-  'Nutritionist':           { id: 'nut',  label: 'Nutritionist',           abbreviation: 'NUT', color: '#2E7D32', emoji: '🥗' },
-  'Lawyer':                 { id: 'jd',   label: 'Lawyer',                 abbreviation: 'JD',  color: '#1A237E', emoji: '⚖️' },
-  'Attorney':               { id: 'atty', label: 'Attorney',               abbreviation: 'ATY', color: '#283593', emoji: '⚖️' },
-  'Judge':                  { id: 'jdg',  label: 'Judge',                  abbreviation: 'JDG', color: '#1A237E', emoji: '🔨' },
-  'Corporate Lawyer':       { id: 'claw', label: 'Corporate Lawyer',       abbreviation: 'CLW', color: '#311B92', emoji: '📜' },
-  'CEO':                    { id: 'ceo',  label: 'CEO',                    abbreviation: 'CEO', color: '#263238', emoji: '🏢' },
-  'Entrepreneur':           { id: 'ent',  label: 'Entrepreneur',           abbreviation: 'ENT', color: '#37474F', emoji: '🚀' },
-  'Tech Entrepreneur':      { id: 'tent', label: 'Tech Entrepreneur',      abbreviation: 'TEC', color: '#263238', emoji: '🚀' },
-  'Operations Manager':     { id: 'ops',  label: 'Operations Manager',     abbreviation: 'OPS', color: '#37474F', emoji: '📋' },
-  'Consultant':             { id: 'con',  label: 'Consultant',             abbreviation: 'CON', color: '#BF360C', emoji: '📌' },
-  'Teacher':                { id: 'edu',  label: 'Teacher',                abbreviation: 'EDU', color: '#1565C0', emoji: '📚' },
-  'Professor':              { id: 'prof', label: 'Professor',              abbreviation: 'PRF', color: '#0D47A1', emoji: '🎓' },
-  'Tutor':                  { id: 'tut',  label: 'Tutor',                  abbreviation: 'TUT', color: '#1565C0', emoji: '✏️' },
-  'Graphic Designer':       { id: 'gd',   label: 'Graphic Designer',       abbreviation: 'GD',  color: '#AD1457', emoji: '🖊️' },
-  'Digital Artist':         { id: 'art',  label: 'Digital Artist',         abbreviation: 'ART', color: '#880E4F', emoji: '🎨' },
-  'Illustrator':            { id: 'ill',  label: 'Illustrator',            abbreviation: 'ILL', color: '#6A1B9A', emoji: '🖋️' },
-  'Photographer':           { id: 'pht',  label: 'Photographer',           abbreviation: 'PHT', color: '#455A64', emoji: '📷' },
-  'Chef':                   { id: 'chf',  label: 'Chef',                   abbreviation: 'CHF', color: '#E65100', emoji: '🔪' },
-  'Pastry Chef':            { id: 'pchf', label: 'Pastry Chef',            abbreviation: 'PST', color: '#E64A19', emoji: '🧁' },
-  'Food Critic':            { id: 'fc',   label: 'Food Critic',            abbreviation: 'FC',  color: '#BF360C', emoji: '🍽️' },
-  'Food Photographer':      { id: 'fpht', label: 'Food Photographer',      abbreviation: 'FPH', color: '#6D4C41', emoji: '📸' },
-  'Restaurant Owner':       { id: 'rest', label: 'Restaurant Owner',       abbreviation: 'RST', color: '#4E342E', emoji: '🍳' },
-  'Sommelier':              { id: 'som',  label: 'Sommelier',              abbreviation: 'SOM', color: '#880E4F', emoji: '🍷' },
-  'Professional Athlete':   { id: 'ath',  label: 'Professional Athlete',   abbreviation: 'ATH', color: '#2E7D32', emoji: '🏅' },
-  'Fitness Coach':          { id: 'fit',  label: 'Fitness Coach',          abbreviation: 'FIT', color: '#388E3C', emoji: '🏋️' },
-  'Yoga Instructor':        { id: 'yog',  label: 'Yoga Instructor',        abbreviation: 'YOG', color: '#558B2F', emoji: '🧘' },
-  'Sports Manager':         { id: 'spm',  label: 'Sports Manager',         abbreviation: 'SPM', color: '#1B5E20', emoji: '📋' },
-  'Commercial Pilot':       { id: 'cpl',  label: 'Commercial Pilot',       abbreviation: 'CPL', color: '#01579B', emoji: '✈️' },
-  'Air Traffic Controller': { id: 'atc',  label: 'Air Traffic Controller', abbreviation: 'ATC', color: '#0277BD', emoji: '🛩️' },
-  'Aircraft Engineer':      { id: 'ace',  label: 'Aircraft Engineer',      abbreviation: 'ACE', color: '#01579B', emoji: '🔧' },
-  'Aviation Student':       { id: 'avs',  label: 'Aviation Student',       abbreviation: 'AVS', color: '#0288D1', emoji: '✈️' },
-  'Cabin Crew Manager':     { id: 'ccm',  label: 'Cabin Crew Manager',     abbreviation: 'CCM', color: '#0277BD', emoji: '🛫' },
-  'Real Estate Agent':      { id: 'rea',  label: 'Real Estate Agent',      abbreviation: 'REA', color: '#4E342E', emoji: '🏠' },
-  'Real Estate Developer':  { id: 'red',  label: 'Real Estate Developer',  abbreviation: 'RED', color: '#3E2723', emoji: '🏗️' },
-  'Financial Advisor':      { id: 'fin',  label: 'Financial Advisor',      abbreviation: 'FIN', color: '#006064', emoji: '📈' },
-  'Trader':                 { id: 'trd',  label: 'Trader',                 abbreviation: 'TRD', color: '#1B5E20', emoji: '📉' },
-  'Investment Banker':      { id: 'ib',   label: 'Investment Banker',      abbreviation: 'IB',  color: '#1B5E20', emoji: '💹' },
-  'Crypto Analyst':         { id: 'web3', label: 'Crypto Analyst',         abbreviation: 'W3',  color: '#4A148C', emoji: '⛓️' },
-  'Finance Student':        { id: 'fins', label: 'Finance Student',        abbreviation: 'FST', color: '#006064', emoji: '📊' },
-  'AI/ML Specialist':       { id: 'ai',   label: 'AI/ML Specialist',       abbreviation: 'AI',  color: '#311B92', emoji: '🤖' },
-  'Security Researcher':    { id: 'sec',  label: 'Security Researcher',    abbreviation: 'SEC', color: '#B71C1C', emoji: '🔐' },
-  'EdTech Creator':         { id: 'etc',  label: 'EdTech Creator',         abbreviation: 'ETC', color: '#1A237E', emoji: '🖥️' },
-  'Culinary Student':       { id: 'cust', label: 'Culinary Student',       abbreviation: 'CUS', color: '#E65100', emoji: '👨‍🍳' },
+  'Software Engineer':      { id: 'swe',  label: 'Software Engineer',      abbreviation: 'SWE', color: '#0066CC', emoji: '' },
+  'Data Scientist':         { id: 'ds',   label: 'Data Scientist',         abbreviation: 'DS',  color: '#4A90E2', emoji: '' },
+  'Product Manager':        { id: 'pm',   label: 'Product Manager',        abbreviation: 'PM',  color: '#1A73E8', emoji: '' },
+  'DevOps Engineer':        { id: 'dev',  label: 'DevOps Engineer',        abbreviation: 'DEV', color: '#5F27CD', emoji: '' },
+  'UX/UI Designer':         { id: 'ux',   label: 'UX/UI Designer',         abbreviation: 'UX',  color: '#D63384', emoji: '' },
+  'Actor':                  { id: 'act',  label: 'Actor',                  abbreviation: 'ACT', color: '#E65100', emoji: '' },
+  'Comedian':               { id: 'cmd',  label: 'Comedian',               abbreviation: 'COM', color: '#FF6F00', emoji: '' },
+  'Musician':               { id: 'mus',  label: 'Musician',               abbreviation: 'MUS', color: '#C62828', emoji: '' },
+  'Producer':               { id: 'prd',  label: 'Producer',               abbreviation: 'PRD', color: '#AD1457', emoji: '' },
+  'Director':               { id: 'dir',  label: 'Director',               abbreviation: 'DIR', color: '#6A1B9A', emoji: '' },
+  'Screenwriter':           { id: 'sw',   label: 'Screenwriter',           abbreviation: 'SCW', color: '#4527A0', emoji: '' },
+  'Animator':               { id: 'anm',  label: 'Animator',               abbreviation: 'ANM', color: '#283593', emoji: '' },
+  'Voice Actor':            { id: 'va',   label: 'Voice Actor',            abbreviation: 'VA',  color: '#1565C0', emoji: '' },
+  'Doctor':                 { id: 'md',   label: 'Doctor',                 abbreviation: 'MD',  color: '#00897B', emoji: '' },
+  'Surgeon':                { id: 'srg',  label: 'Surgeon',                abbreviation: 'SRG', color: '#00695C', emoji: '' },
+  'Nurse':                  { id: 'rn',   label: 'Nurse',                  abbreviation: 'RN',  color: '#26A69A', emoji: '' },
+  'Pharmacist':             { id: 'rx',   label: 'Pharmacist',             abbreviation: 'RX',  color: '#00838F', emoji: '' },
+  'Therapist':              { id: 'thp',  label: 'Therapist',              abbreviation: 'THP', color: '#558B2F', emoji: '' },
+  'Nutritionist':           { id: 'nut',  label: 'Nutritionist',           abbreviation: 'NUT', color: '#2E7D32', emoji: '' },
+  'Lawyer':                 { id: 'jd',   label: 'Lawyer',                 abbreviation: 'JD',  color: '#1A237E', emoji: '' },
+  'Attorney':               { id: 'atty', label: 'Attorney',               abbreviation: 'ATY', color: '#283593', emoji: '' },
+  'Judge':                  { id: 'jdg',  label: 'Judge',                  abbreviation: 'JDG', color: '#1A237E', emoji: '' },
+  'Corporate Lawyer':       { id: 'claw', label: 'Corporate Lawyer',       abbreviation: 'CLW', color: '#311B92', emoji: '' },
+  'CEO':                    { id: 'ceo',  label: 'CEO',                    abbreviation: 'CEO', color: '#263238', emoji: '' },
+  'Entrepreneur':           { id: 'ent',  label: 'Entrepreneur',           abbreviation: 'ENT', color: '#37474F', emoji: '' },
+  'Tech Entrepreneur':      { id: 'tent', label: 'Tech Entrepreneur',      abbreviation: 'TEC', color: '#263238', emoji: '' },
+  'Operations Manager':     { id: 'ops',  label: 'Operations Manager',     abbreviation: 'OPS', color: '#37474F', emoji: '' },
+  'Consultant':             { id: 'con',  label: 'Consultant',             abbreviation: 'CON', color: '#BF360C', emoji: '' },
+  'Teacher':                { id: 'edu',  label: 'Teacher',                abbreviation: 'EDU', color: '#1565C0', emoji: '' },
+  'Professor':              { id: 'prof', label: 'Professor',              abbreviation: 'PRF', color: '#0D47A1', emoji: '' },
+  'Tutor':                  { id: 'tut',  label: 'Tutor',                  abbreviation: 'TUT', color: '#1565C0', emoji: '' },
+  'Graphic Designer':       { id: 'gd',   label: 'Graphic Designer',       abbreviation: 'GD',  color: '#AD1457', emoji: '' },
+  'Digital Artist':         { id: 'art',  label: 'Digital Artist',         abbreviation: 'ART', color: '#880E4F', emoji: '' },
+  'Illustrator':            { id: 'ill',  label: 'Illustrator',            abbreviation: 'ILL', color: '#6A1B9A', emoji: '' },
+  'Photographer':           { id: 'pht',  label: 'Photographer',           abbreviation: 'PHT', color: '#455A64', emoji: '' },
+  'Chef':                   { id: 'chf',  label: 'Chef',                   abbreviation: 'CHF', color: '#E65100', emoji: '' },
+  'Pastry Chef':            { id: 'pchf', label: 'Pastry Chef',            abbreviation: 'PST', color: '#E64A19', emoji: '' },
+  'Food Critic':            { id: 'fc',   label: 'Food Critic',            abbreviation: 'FC',  color: '#BF360C', emoji: '' },
+  'Food Photographer':      { id: 'fpht', label: 'Food Photographer',      abbreviation: 'FPH', color: '#6D4C41', emoji: '' },
+  'Restaurant Owner':       { id: 'rest', label: 'Restaurant Owner',       abbreviation: 'RST', color: '#4E342E', emoji: '' },
+  'Sommelier':              { id: 'som',  label: 'Sommelier',              abbreviation: 'SOM', color: '#880E4F', emoji: '' },
+  'Professional Athlete':   { id: 'ath',  label: 'Professional Athlete',   abbreviation: 'ATH', color: '#2E7D32', emoji: '' },
+  'Fitness Coach':          { id: 'fit',  label: 'Fitness Coach',          abbreviation: 'FIT', color: '#388E3C', emoji: '' },
+  'Yoga Instructor':        { id: 'yog',  label: 'Yoga Instructor',        abbreviation: 'YOG', color: '#558B2F', emoji: '' },
+  'Sports Manager':         { id: 'spm',  label: 'Sports Manager',         abbreviation: 'SPM', color: '#1B5E20', emoji: '' },
+  'Commercial Pilot':       { id: 'cpl',  label: 'Commercial Pilot',       abbreviation: 'CPL', color: '#01579B', emoji: '' },
+  'Air Traffic Controller': { id: 'atc',  label: 'Air Traffic Controller', abbreviation: 'ATC', color: '#0277BD', emoji: '' },
+  'Aircraft Engineer':      { id: 'ace',  label: 'Aircraft Engineer',      abbreviation: 'ACE', color: '#01579B', emoji: '' },
+  'Aviation Student':       { id: 'avs',  label: 'Aviation Student',       abbreviation: 'AVS', color: '#0288D1', emoji: '' },
+  'Cabin Crew Manager':     { id: 'ccm',  label: 'Cabin Crew Manager',     abbreviation: 'CCM', color: '#0277BD', emoji: '' },
+  'Real Estate Agent':      { id: 'rea',  label: 'Real Estate Agent',      abbreviation: 'REA', color: '#4E342E', emoji: '' },
+  'Real Estate Developer':  { id: 'red',  label: 'Real Estate Developer',  abbreviation: 'RED', color: '#3E2723', emoji: '' },
+  'Financial Advisor':      { id: 'fin',  label: 'Financial Advisor',      abbreviation: 'FIN', color: '#006064', emoji: '' },
+  'Trader':                 { id: 'trd',  label: 'Trader',                 abbreviation: 'TRD', color: '#1B5E20', emoji: '' },
+  'Investment Banker':      { id: 'ib',   label: 'Investment Banker',      abbreviation: 'IB',  color: '#1B5E20', emoji: '' },
+  'Crypto Analyst':         { id: 'web3', label: 'Crypto Analyst',         abbreviation: 'W3',  color: '#4A148C', emoji: '' },
+  'Finance Student':        { id: 'fins', label: 'Finance Student',        abbreviation: 'FST', color: '#006064', emoji: '' },
+  'AI/ML Specialist':       { id: 'ai',   label: 'AI/ML Specialist',       abbreviation: 'AI',  color: '#311B92', emoji: '' },
+  'Security Researcher':    { id: 'sec',  label: 'Security Researcher',    abbreviation: 'SEC', color: '#B71C1C', emoji: '' },
+  'EdTech Creator':         { id: 'etc',  label: 'EdTech Creator',         abbreviation: 'ETC', color: '#1A237E', emoji: '' },
+  'Culinary Student':       { id: 'cust', label: 'Culinary Student',       abbreviation: 'CUS', color: '#E65100', emoji: '' },
 };
 
-// ─── Default About Me text per profession ────────────────────────────
+//  Default About Me text per profession 
 
 export function defaultAboutMe(profession: string): string {
   const defaults: Record<string, string> = {
@@ -124,7 +124,7 @@ export function defaultAboutMe(profession: string): string {
   return defaults[profession] ?? `${profession} — click Edit to write your story and explain why someone should work with you.`;
 }
 
-// ─── Profession Sticker (clickable — opens About Me panel) ───────────
+//  Profession Sticker (clickable — opens About Me panel) 
 // Shows badge abbreviation + a tiny slot label underneath.
 
 export function ProfessionSticker({
@@ -214,7 +214,7 @@ export function ProfessionSticker({
   );
 }
 
-// ─── About Me Panel — shows all 3 slots, edit any ────────────────────
+//  About Me Panel — shows all 3 slots, edit any 
 
 function AboutMePanel({
   slot: initialSlot,
@@ -505,7 +505,7 @@ function AboutMePanel({
                   )}
                   {entry.pitchVideoUrl && (
                     <div style={{ fontSize: '12px', color: '#0066CC', fontWeight: 600 }}>
-                      📹 Pitch video attached
+                       Pitch video attached
                     </div>
                   )}
                 </>
@@ -518,7 +518,7 @@ function AboutMePanel({
   );
 }
 
-// ─── Profile Card Display — custom hover preview ─────────────────────
+//  Profile Card Display — custom hover preview 
 
 export function ProfileCardDisplay({
   valueSkins,
@@ -573,7 +573,7 @@ export function ProfileCardDisplay({
           opacity: showCard ? 0 : 1,
           transition: 'opacity 0.2s',
         }}>
-          <span style={{ fontSize: '32px' }}>👤</span>
+          <span style={{ fontSize: '32px' }}></span>
         </div>
       </div>
 
@@ -590,7 +590,7 @@ export function ProfileCardDisplay({
   );
 }
 
-// ─── Profile Card Preview (hover modal) ───────────────────────────────
+//  Profile Card Preview (hover modal) 
 
 function ProfileCardPreview({
   valueSkins,
@@ -732,7 +732,7 @@ function ProfileCardPreview({
   );
 }
 
-// ─── Row of up to 3 stickers (Profession / Passion / Hobby) ──────────
+//  Row of up to 3 stickers (Profession / Passion / Hobby) 
 
 export function ValueSkinStickers({
   valueSkins,
@@ -770,7 +770,7 @@ export function ValueSkinStickers({
   );
 }
 
-// ─── Valueskins Avatar Overlay (shown in long-press viewer) ──────────
+//  Valueskins Avatar Overlay (shown in long-press viewer) 
 
 export function ValueskinAvatarOverlay({
   level,
@@ -808,7 +808,7 @@ export function ValueskinAvatarOverlay({
   );
 }
 
-// ─── Long-Press Avatar Viewer ─────────────────────────────────────────
+//  Long-Press Avatar Viewer 
 
 export function AvatarLongPressViewer({
   visible,
@@ -869,7 +869,7 @@ export function AvatarLongPressViewer({
   );
 }
 
-// ─── Profile Photo with Long-Press Detection ─────────────────────────
+//  Profile Photo with Long-Press Detection 
 
 const LONG_PRESS_MS = 400;
 
@@ -953,7 +953,7 @@ export function ProfilePhotoWithLongPress({
   );
 }
 
-// ─── Valueskins Avatar Toggle ─────────────────────────────────────────
+//  Valueskins Avatar Toggle 
 
 export function ValueskinAvatarToggle({
   enabled,

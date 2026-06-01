@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-    { href: '/marketplace', label: 'Marketplace', icon: '🎯' },
-    { href: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
-    { href: '/profile', label: 'Profile', icon: '👤' },
-    { href: '/referrals', label: 'Referrals', icon: '🔗' },
-    { href: '/scoring', label: 'How Scoring Works', icon: '📊' },
+    { href: '/marketplace', label: 'Marketplace', icon: '' },
+    { href: '/leaderboard', label: 'Leaderboard', icon: '' },
+    { href: '/profile', label: 'Profile', icon: '' },
+    { href: '/referrals', label: 'Referrals', icon: '' },
+    { href: '/scoring', label: 'How Scoring Works', icon: '' },
 ];
 
 export function Navigation() {

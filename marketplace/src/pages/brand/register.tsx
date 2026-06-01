@@ -159,7 +159,7 @@ export default function BrandRegisterPage({ registrationFeeCents = 99900 }: Bran
             <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>What You Get</h2>
 
             <div style={benefitItemStyle}>
-              <div style={benefitIconStyle}>🔍</div>
+              <div style={benefitIconStyle}></div>
               <div style={benefitTextStyle}>
                 <div style={benefitTitleStyle}>Advanced Creator Search</div>
                 <div style={benefitDescStyle}>Filter creators by location, followers, engagement, and more.</div>
@@ -167,7 +167,7 @@ export default function BrandRegisterPage({ registrationFeeCents = 99900 }: Bran
             </div>
 
             <div style={benefitItemStyle}>
-              <div style={benefitIconStyle}>💬</div>
+              <div style={benefitIconStyle}></div>
               <div style={benefitTextStyle}>
                 <div style={benefitTitleStyle}>Direct Messaging</div>
                 <div style={benefitDescStyle}>Message creators directly to discuss collaboration opportunities.</div>
@@ -175,7 +175,7 @@ export default function BrandRegisterPage({ registrationFeeCents = 99900 }: Bran
             </div>
 
             <div style={benefitItemStyle}>
-              <div style={benefitIconStyle}>📊</div>
+              <div style={benefitIconStyle}></div>
               <div style={benefitTextStyle}>
                 <div style={benefitTitleStyle}>Analytics & Insights</div>
                 <div style={benefitDescStyle}>Track your collaborations, engagement, and ROI metrics.</div>
@@ -183,7 +183,7 @@ export default function BrandRegisterPage({ registrationFeeCents = 99900 }: Bran
             </div>
 
             <div style={benefitItemStyle}>
-              <div style={benefitIconStyle}>🎯</div>
+              <div style={benefitIconStyle}></div>
               <div style={benefitTextStyle}>
                 <div style={benefitTitleStyle}>Campaign Management</div>
                 <div style={benefitDescStyle}>Create, manage, and track multiple creator collaboration campaigns.</div>
@@ -191,7 +191,7 @@ export default function BrandRegisterPage({ registrationFeeCents = 99900 }: Bran
             </div>
 
             <div style={benefitItemStyle}>
-              <div style={benefitIconStyle}>⭐</div>
+              <div style={benefitIconStyle}></div>
               <div style={benefitTextStyle}>
                 <div style={benefitTitleStyle}>Creator Reputation Scores</div>
                 <div style={benefitDescStyle}>Access detailed reputation scores and verified reviews from other brands.</div>
@@ -199,7 +199,7 @@ export default function BrandRegisterPage({ registrationFeeCents = 99900 }: Bran
             </div>
 
             <div style={benefitItemStyle}>
-              <div style={benefitIconStyle}>🚀</div>
+              <div style={benefitIconStyle}></div>
               <div style={benefitTextStyle}>
                 <div style={benefitTitleStyle}>Priority Support</div>
                 <div style={benefitDescStyle}>Get dedicated support to help maximize your creator partnerships.</div>

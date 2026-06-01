@@ -35,8 +35,8 @@ export default function OnboardingEnhanced() {
 
         <div style={{ display: 'grid', gap: '16px', marginBottom: '32px' }}>
           {[
-            { value: 'creator' as const, label: 'I\'m a Creator', desc: 'Showcase my work and find brand deals', icon: '🎬' },
-            { value: 'brand' as const, label: 'I\'m a Brand', desc: 'Find creators for my campaigns', icon: '🏢' },
+            { value: 'creator' as const, label: 'I\'m a Creator', desc: 'Showcase my work and find brand deals', icon: '' },
+            { value: 'brand' as const, label: 'I\'m a Brand', desc: 'Find creators for my campaigns', icon: '' },
           ].map(option => (
             <button
               key={option.value}

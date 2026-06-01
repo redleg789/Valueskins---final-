@@ -46,7 +46,7 @@ const StarDisplay: React.FC<{ rating: number }> = ({ rating }) => {
             color: num <= stars ? '#fbbf24' : C.border,
           }}
         >
-          ★
+          
         </span>
       ))}
     </div>
@@ -210,7 +210,7 @@ export default function DealReviewList({ dealId }: DealReviewListProps) {
             <div style={reviewerInfoStyle}>
               <div style={reviewerNameStyle}>{review.reviewerName}</div>
               <div style={reviewTypeStyle}>
-                {review.reviewerType === 'creator' ? '👤 Creator' : '🏢 Brand'}
+                {review.reviewerType === 'creator' ? ' Creator' : ' Brand'}
               </div>
             </div>
             <div style={dateStyle}>
