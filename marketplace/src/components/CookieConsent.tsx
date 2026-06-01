@@ -28,6 +28,14 @@ export default function CookieConsent() {
   useEffect(() => {
     setChoice(cookieConsent.getChoice());
     setPrefs(cookieConsent.getPreferences());
+
+    const handleChange = () => {
+      setChoice(cookieConsent.getChoice());
+      setPrefs(cookieConsent.getPreferences());
+    };
+
+    window.addEventListener('cookie-consent-changed', handleChange);
+    return () => window.removeEventListener('cookie-consent-changed', handleChange);
   }, []);
 
   if (choice !== 'pending' && !showPreferences) {
