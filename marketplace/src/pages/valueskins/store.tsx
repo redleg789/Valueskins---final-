@@ -28,6 +28,7 @@ export default function ValueSkinsStore() {
   const [loadingProfession, setLoadingProfession] = useState<string | null>(null);
   const [showImageUpload, setShowImageUpload] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!account?.id) return;
@@ -48,6 +49,8 @@ export default function ValueSkinsStore() {
 
   const handlePurchaseClick = (profession: string) => {
     setShowImageUpload(profession);
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,6 +60,12 @@ export default function ValueSkinsStore() {
         alert('Image must be less than 500KB');
         return;
       }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
       setImageFile(file);
     }
   };
@@ -72,7 +81,7 @@ export default function ValueSkinsStore() {
       return;
     }
 
-    if (!imageFile) {
+    if (!imagePreview) {
       alert('Please upload a custom image for your ValueSkin');
       return;
     }
@@ -80,15 +89,15 @@ export default function ValueSkinsStore() {
     setLoadingProfession(profession);
 
     try {
-      const formData = new FormData();
-      formData.append('file', imageFile);
-      formData.append('profession', profession);
-      formData.append('userId', account.id);
-
       const uploadRes = await fetch('/api/skins/upload', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: formData,
+        body: JSON.stringify({
+          imageBase64: imagePreview,
+          profession: profession,
+          userId: account.id,
+        }),
       });
 
       if (!uploadRes.ok) {
@@ -101,7 +110,6 @@ export default function ValueSkinsStore() {
     } catch (err) {
       console.error('Purchase failed:', err);
       alert('Failed to process purchase');
-    } finally {
       setLoadingProfession(null);
     }
   };
@@ -200,6 +208,7 @@ export default function ValueSkinsStore() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageSelect}
+                      disabled={isCurrentlyUploading}
                       style={{
                         width: '100%',
                         padding: '8px',
@@ -209,6 +218,15 @@ export default function ValueSkinsStore() {
                         marginBottom: '8px',
                       }}
                     />
+                    {imagePreview && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview" 
+                          style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '6px' }}
+                        />
+                      </div>
+                    )}
                     {imageFile && (
                       <p style={{ fontSize: '11px', color: C.accent, marginBottom: '8px' }}>
                         Selected: {imageFile.name}
@@ -221,7 +239,7 @@ export default function ValueSkinsStore() {
                         style={{
                           flex: 1,
                           padding: '8px',
-                          background: imageFile ? C.primary : C.textSecondary,
+                          background: imageFile && !isCurrentlyUploading ? C.primary : C.textSecondary,
                           color: '#fff',
                           border: 'none',
                           borderRadius: '6px',
@@ -233,7 +251,8 @@ export default function ValueSkinsStore() {
                         {isCurrentlyUploading ? 'Processing...' : 'Continue to Payment'}
                       </button>
                       <button
-                        onClick={() => { setShowImageUpload(null); setImageFile(null); }}
+                        onClick={() => { setShowImageUpload(null); setImageFile(null); setImagePreview(null); }}
+                        disabled={isCurrentlyUploading}
                         style={{
                           flex: 1,
                           padding: '8px',
@@ -243,7 +262,7 @@ export default function ValueSkinsStore() {
                           borderRadius: '6px',
                           fontSize: '12px',
                           fontWeight: '600',
-                          cursor: 'pointer',
+                          cursor: isCurrentlyUploading ? 'not-allowed' : 'pointer',
                         }}
                       >
                         Cancel
