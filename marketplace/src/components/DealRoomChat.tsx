@@ -7,6 +7,7 @@ interface Message {
   sender: 'me' | 'brand';
   text: string;
   timestamp: string;
+  fullTimestamp: string;
   type: 'message' | 'status';
 }
 
@@ -25,6 +26,7 @@ export default function DealRoomChat({
 }: DealRoomChatProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [inputText, setInputText] = useState('');
+  const [showTimestampWarning, setShowTimestampWarning] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -35,14 +37,30 @@ export default function DealRoomChat({
     scrollToBottom();
   }, [messages]);
 
+  const handleCalendarExport = () => {
+    window.location.href = `/api/deals/calendar-export?dealId=${dealId}`;
+  };
+
   const handleSend = () => {
     if (!inputText.trim()) return;
+
+    const now = new Date();
+    const fullTimestamp = now.toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
 
     const newMessage: Message = {
       id: messages.length + 1,
       sender: 'me',
       text: inputText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      fullTimestamp: fullTimestamp,
       type: 'message',
     };
 
@@ -63,20 +81,75 @@ export default function DealRoomChat({
         overflow: 'hidden',
       }}
     >
+      {/* Documentation Warning Banner */}
+      {showTimestampWarning && (
+        <div
+          style={{
+            padding: '12px 16px',
+            background: 'rgba(245, 158, 11, 0.1)',
+            borderBottom: '1px solid rgba(245, 158, 11, 0.3)',
+            fontSize: '12px',
+            color: '#92400e',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <div>
+            <strong>⚠️ Documentation Priority:</strong> All messages are logged with exact timestamps for dispute resolution. Do not share personal information. This chat is ONLY for deal documentation.
+          </div>
+          <button
+            onClick={() => setShowTimestampWarning(false)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              color: '#92400e',
+              padding: '0 8px',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
           padding: '16px',
           borderBottom: '1px solid #e5e7eb',
           background: '#f9fafb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}
       >
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1f2937', margin: 0 }}>
-          Deal with {brandName}
-        </h3>
-        <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-          Status: In Progress
-        </p>
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#1f2937', margin: 0 }}>
+            Deal with {brandName}
+          </h3>
+          <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
+            Status: In Progress
+          </p>
+        </div>
+        <button
+          onClick={handleCalendarExport}
+          style={{
+            padding: '8px 12px',
+            background: '#2563eb',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+          title="Export deal deadline to your calendar (Google, Apple, Outlook)"
+        >
+          📅 Add to Calendar
+        </button>
       </div>
 
       {/* Messages */}
@@ -126,12 +199,14 @@ export default function DealRoomChat({
                 <div>{msg.text}</div>
                 <div
                   style={{
-                    fontSize: '11px',
-                    opacity: 0.7,
+                    fontSize: '10px',
+                    opacity: 0.65,
                     marginTop: '6px',
+                    fontFamily: 'monospace',
                   }}
+                  title={msg.fullTimestamp}
                 >
-                  {msg.timestamp}
+                  {msg.fullTimestamp || msg.timestamp}
                 </div>
               </div>
             )}
@@ -154,7 +229,7 @@ export default function DealRoomChat({
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          onKeyPress={(e) => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               handleSend();
