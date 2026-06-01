@@ -140,7 +140,7 @@ export default function OnboardingCreator() {
         headers: { 'x-user-id': userId as string },
       }).catch(() => {});
 
-      router.push('/demo/marketplace');
+      router.push('/marketplace');
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -255,7 +255,7 @@ export default function OnboardingCreator() {
           <button onClick={() => setShowSkipWarning(true)} style={{ padding: '12px 20px', border: `1px solid ${C.border}`, background: 'transparent', color: C.textSecondary, borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '13px' }}>Skip</button>
         </div>
 
-        {showSkipWarning && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ background: C.surface, padding: '24px', borderRadius: '12px', maxWidth: '400px', border: `1px solid ${C.border}` }}><h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>Save progress?</h3><p style={{ color: C.textSecondary, fontSize: '13px', marginBottom: '16px' }}>Your draft is auto-saved.</p><div style={{ display: 'flex', gap: '12px' }}><button onClick={() => setShowSkipWarning(false)} style={{ flex: 1, padding: '10px', border: `1px solid ${C.border}`, background: 'transparent', color: C.text, borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Continue</button><button onClick={() => router.push('/demo/marketplace')} style={{ flex: 1, padding: '10px', background: C.accent, color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Exit</button></div></div></div>}
+        {showSkipWarning && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ background: C.surface, padding: '24px', borderRadius: '12px', maxWidth: '400px', border: `1px solid ${C.border}` }}><h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>Save progress?</h3><p style={{ color: C.textSecondary, fontSize: '13px', marginBottom: '16px' }}>Your draft is auto-saved.</p><div style={{ display: 'flex', gap: '12px' }}><button onClick={() => setShowSkipWarning(false)} style={{ flex: 1, padding: '10px', border: `1px solid ${C.border}`, background: 'transparent', color: C.text, borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Continue</button><button onClick={() => router.push('/marketplace')} style={{ flex: 1, padding: '10px', background: C.accent, color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>Exit</button></div></div></div>}
       </div>
     </div>
   );
