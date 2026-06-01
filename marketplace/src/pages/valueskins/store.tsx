@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useAuth } from '@/context/AuthContext';
 import { C } from '@/theme/colors';
 
 const PROFESSIONS = {
@@ -21,14 +22,17 @@ const PROFESSIONS = {
 
 export default function ValueSkinsStore() {
   const router = useRouter();
+  const { account } = useAuth();
   const [ownedSkins, setOwnedSkins] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!account?.id) return;
+
     const fetchOwnedSkins = async () => {
       try {
-        const res = await fetch('/api/skins/manage');
+        const res = await fetch(`/api/skins/manage?userId=${account.id}`);
         if (res.ok) {
           const data = await res.json();
           setOwnedSkins(data.skins?.map((s: any) => s.value_skin) || []);
@@ -38,9 +42,14 @@ export default function ValueSkinsStore() {
       }
     };
     fetchOwnedSkins();
-  }, []);
+  }, [account?.id]);
 
   const handlePurchase = async (skinName: string) => {
+    if (!account?.id) {
+      alert('Please log in first');
+      return;
+    }
+
     if (ownedSkins.length >= 3) {
       alert('You can only own 3 value skins. Delete one to purchase another.');
       return;
@@ -51,14 +60,20 @@ export default function ValueSkinsStore() {
       const res = await fetch('/api/skins/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ valueSkin: skinName }),
+        credentials: 'include',
+        body: JSON.stringify({ userId: account.id, valueSkin: skinName }),
       });
 
       if (res.ok) {
         setOwnedSkins([...ownedSkins, skinName.toLowerCase()]);
+        alert('Profession unlocked!');
+      } else {
+        const err = await res.json();
+        alert(`Error: ${err.error}`);
       }
     } catch (err) {
       console.error('Purchase failed:', err);
+      alert('Purchase failed');
     } finally {
       setLoading(false);
     }
@@ -148,7 +163,7 @@ export default function ValueSkinsStore() {
 
                 <button
                   onClick={() => handlePurchase(name)}
-                  disabled={isOwned || (loading && !isOwned) || !canPurchase}
+                  disabled={isOwned || loading || !canPurchase}
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -158,11 +173,11 @@ export default function ValueSkinsStore() {
                     borderRadius: '8px',
                     fontSize: '14px',
                     fontWeight: '600',
-                    cursor: isOwned || !canPurchase ? 'not-allowed' : 'pointer',
+                    cursor: isOwned || !canPurchase || loading ? 'not-allowed' : 'pointer',
                     opacity: !canPurchase && !isOwned ? 0.5 : 1,
                   }}
                 >
-                  {isOwned ? 'Owned' : !canPurchase ? 'Max Skins' : 'Unlock'}
+                  {loading ? 'Purchasing...' : isOwned ? 'Owned' : !canPurchase ? 'Max Skins' : 'Purchase'}
                 </button>
               </div>
             );
