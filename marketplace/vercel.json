@@ -1,45 +1,16 @@
 {
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "GOOGLE_CLIENT_SECRET": "@google_client_secret",
-    "SESSION_SECRET": "@session_secret"
-  },
-  "headers": [
+  "crons": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=31536000; includeSubDomains; preload"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
-      ]
+      "path": "/api/cron/process-reminders",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/archive-deals",
+      "schedule": "0 0 * * 0"
     }
   ],
-  "redirects": [
-    {
-      "source": "/settings",
-      "destination": "/account/settings",
-      "permanent": true
-    }
+  "env": [
+    "DATABASE_URL",
+    "CRON_SECRET"
   ]
 }
