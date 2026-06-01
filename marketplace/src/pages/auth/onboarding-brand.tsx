@@ -142,6 +142,39 @@ export default function OnboardingBrand() {
   const steps: Step[] = ['company', 'campaign', 'creators', 'budget', 'workflow', 'review'];
   const currentStepIndex = steps.indexOf(step);
 
+  const fillDemoData = () => {
+    setData({
+      companyName: "StyleCo Brands",
+      industry: "fashion",
+      companySize: "medium",
+      campaignGoals: ["increase_brand_awareness", "drive_sales"],
+      campaignTypes: ["sponsored_post", "product_launch"],
+      targetCreatorCategories: ["Fashion", "Lifestyle"],
+      targetAudience: {
+        ageRanges: ["18-24", "25-34"],
+        genders: ["Female", "Male"],
+        geographies: ["India", "USA"],
+      },
+      minFollowers: 50000,
+      minEngagement: 3,
+      requiredPlatforms: ["instagram", "tiktok"],
+      languageRequirements: ["English", "Hindi"],
+      budgetRange: "10k-25k",
+      budgetPerDeal: 15000,
+      paymentStructure: "hybrid",
+      frequency: "monthly",
+      approvalTime: 2,
+      revisionLimit: 3,
+      communicationStyle: "friendly",
+      preferredDeadlineTypes: ["3-5 days"],
+      preferences: { exclusivity: true, contentRights: "perpetual" },
+      previousCampaigns: 5,
+      averageCreatorRetention: 80,
+      testimonials: ["Great collaboration results", "Professional and timely"],
+    });
+    setStep("company");
+  };
+
   const handleComplete = async () => {
     setLoading(true);
     try {
@@ -605,6 +638,22 @@ export default function OnboardingBrand() {
               fontSize: '13px',
             }}
           >
+          <button
+            onClick={fillDemoData}
+            style={{
+              padding: "12px 20px",
+              border: `1px solid ${C.border}`,
+              background: "transparent",
+              color: C.accent,
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: 500,
+              fontSize: "13px",
+            }}
+          >
+            Fill Demo Data (Brand)
+          </button>
+
             Exit
           </button>
         </div>
