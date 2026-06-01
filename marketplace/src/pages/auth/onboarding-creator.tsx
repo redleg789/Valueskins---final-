@@ -83,6 +83,7 @@ export default function OnboardingCreator() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSkipWarning, setShowSkipWarning] = useState(false);
   const [citySuggestions, setCitySuggestions] = useState<any[]>([]);
+  const [languageSuggestions, setLanguageSuggestions] = useState<string[]>([]);
 
   const [data, setData] = useState<CreatorOnboarding>({
     displayName: '',
@@ -480,16 +481,27 @@ export default function OnboardingCreator() {
                     {step === 'languages' && (
             <>
               <h2 style={{ fontSize: '20px', fontWeight: 600, color: C.text, marginBottom: '16px' }}>Languages You Speak</h2>
-              <p style={{ color: C.textSecondary, fontSize: '13px', marginBottom: '16px' }}>Select languages you can work in.</p>
+              <p style={{ color: C.textSecondary, fontSize: '13px', marginBottom: '16px' }}>Type any language. Search works letter-by-letter.</p>
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '8px' }}>Add Language</div>
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value && !data.languages.includes(e.target.value)) {
-                        setData({ ...data, languages: [...data.languages, e.target.value] });
+                  <input
+                    type="text"
+                    placeholder="Type language name..."
+                    onChange={async (e) => {
+                      const query = e.target.value;
+                      if (query.length < 1) {
+                        setLanguageSuggestions([]);
+                        return;
+                      }
+                      
+                      try {
+                        const res = await fetch(`/api/search-languages?q=${encodeURIComponent(query)}`);
+                        const data_langs = await res.json();
+                        setLanguageSuggestions(data_langs.languages || []);
+                      } catch (err) {
+                        console.error('Error fetching languages:', err);
                       }
                     }}
                     style={{
@@ -501,23 +513,43 @@ export default function OnboardingCreator() {
                       borderRadius: '8px',
                       fontSize: '14px',
                     }}
-                  >
-                    <option value="">Select a language</option>
-                    <option value="English">English</option>
-                    <option value="Hindi">Hindi</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                    <option value="Mandarin">Mandarin</option>
-                    <option value="Japanese">Japanese</option>
-                    <option value="Portuguese">Portuguese</option>
-                    <option value="Russian">Russian</option>
-                    <option value="Korean">Korean</option>
-                    <option value="Arabic">Arabic</option>
-                    <option value="Italian">Italian</option>
-                  </select>
+                  />
                 </label>
               </div>
+
+              {languageSuggestions.length > 0 && (
+                <div style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: '8px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  marginBottom: '16px',
+                }}>
+                  {languageSuggestions.map((lang, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        if (!data.languages.includes(lang)) {
+                          setData({ ...data, languages: [...data.languages, lang] });
+                        }
+                        setLanguageSuggestions([]);
+                      }}
+                      style={{
+                        padding: '10px 12px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        color: C.text,
+                        borderBottom: `1px solid ${C.border}`,
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = C.border}
+                      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'transparent'}
+                    >
+                      {lang}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {data.languages.length > 0 && (
                 <div style={{ padding: '12px', background: C.bg, borderRadius: '8px', marginBottom: '16px' }}>
@@ -560,6 +592,7 @@ export default function OnboardingCreator() {
               )}
             </>
           )}
+
 
           {step === 'brand-prefs' && (
             <>
