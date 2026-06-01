@@ -78,7 +78,7 @@ export default function HomePage() {
           <DashboardCard
             title="Marketplace"
             desc="Discover brands, creators & deals"
-            link="/marketplace"
+            link="/demo/marketplace"
             color="#8b5cf6"
           />
 

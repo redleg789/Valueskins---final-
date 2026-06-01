@@ -167,7 +167,7 @@ export default function ValueSkinsStore() {
         </div>
 
         <button
-          onClick={() => router.push('/marketplace')}
+          onClick={() => router.push('/demo/marketplace')}
           style={{
             padding: '12px 24px',
             border: `1px solid ${C.border}`,

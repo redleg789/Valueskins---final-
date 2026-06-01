@@ -281,7 +281,7 @@ export default function CreatorProfilePage() {
             {error || 'Creator not found'}
           </div>
           <button
-            onClick={() => router.push('/marketplace')}
+            onClick={() => router.push('/demo/marketplace')}
             style={{
               padding: '10px 24px',
               background: C.primary,
@@ -506,7 +506,7 @@ export default function CreatorProfilePage() {
           {/* Back Button */}
           <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: `1px solid ${C.border}` }}>
             <button
-              onClick={() => router.push('/marketplace')}
+              onClick={() => router.push('/demo/marketplace')}
               style={{
                 padding: '10px 24px',
                 background: 'transparent',

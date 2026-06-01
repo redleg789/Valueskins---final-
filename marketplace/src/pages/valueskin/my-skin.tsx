@@ -207,7 +207,7 @@ export default function MyValueSkinPage() {
           {/* Actions */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <Link
-              href="/marketplace"
+              href="/demo/marketplace"
               style={{
                 padding: '12px',
                 background: C.primary,

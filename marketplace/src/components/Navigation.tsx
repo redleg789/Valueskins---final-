@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-    { href: '/marketplace', label: 'Marketplace', icon: '' },
+    { href: '/demo/marketplace', label: 'Marketplace', icon: '' },
     { href: '/valueskins/store', label: 'ValuSkins Store', icon: '' },
     { href: '/leaderboard', label: 'Leaderboard', icon: '' },
     { href: '/profile', label: 'Profile', icon: '' },

@@ -267,7 +267,7 @@ export default function MarketplaceDemoPage() {
   const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
-      if (p === '/feed' || p === '/marketplace' || p === '/') return 'mim';
+      if (p === '/feed' || p === '/demo/marketplace' || p === '/') return 'mim';
       if (p === '/explore') return 'explore';
       if (p === '/store') return 'store';
       if (p === '/messages') return 'messages';
