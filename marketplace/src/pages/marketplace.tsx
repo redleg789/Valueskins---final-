@@ -12,27 +12,8 @@ export default function MarketplacePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkValueScheme = async () => {
-      try {
-        const res = await fetch('/api/creator/has-valueskin');
-        if (!res.ok) {
-          router.replace('/store');
-          return;
-        }
-        const data = await res.json();
-        if (!data.hasValueskin) {
-          router.replace('/store');
-          return;
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error('Error checking value scheme:', err);
-        router.replace('/store');
-      }
-    };
-
-    checkValueScheme();
-  }, [router]);
+    setLoading(false);
+  }, []);
 
   const containerStyle: CSSProperties = {
     minHeight: '100vh',
