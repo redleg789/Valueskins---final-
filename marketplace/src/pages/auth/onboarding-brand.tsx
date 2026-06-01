@@ -425,26 +425,9 @@ export default function OnboardingBrand() {
                 />
               </label>
 
-              <label style={{ display: 'block', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Payment Structure</div>
-                <select
-                  value={data.paymentStructure}
-                  onChange={e => setData({ ...data, paymentStructure: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.text,
-                    borderRadius: '8px',
-                  }}
-                >
-                  <option value="upfront">Upfront Payment</option>
-                  <option value="milestone">Milestone-based</option>
-                  <option value="postrelease">Post-Release</option>
-                  <option value="hybrid">Hybrid</option>
-                </select>
-              </label>
+              <div style={{ padding: '12px', background: C.bg, borderRadius: '8px', marginTop: '0px', fontSize: '12px', color: C.textSecondary }}>
+                All deals use hybrid escrow payment: advance and post-completion amounts held in escrow. Terms negotiated per deal.
+              </div>
 
               <label style={{ display: 'block' }}>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Campaign Frequency</div>
