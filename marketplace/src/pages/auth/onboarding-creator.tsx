@@ -280,18 +280,18 @@ export default function OnboardingCreator() {
               </label>
 
               <label style={{ display: 'block', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Location (City, Country)</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Which city are you from?</div>
                 <input
                   type="text"
-                  value={data.location.city ? `${data.location.city}, ${data.location.country}` : ''}
+                  defaultValue={data.location.city ? `${data.location.city}, ${data.location.country}` : ''}
                   onChange={e => {
                     const query = e.target.value;
+                    if (query.length === 0) {
+                      setCitySuggestions([]);
+                      return;
+                    }
                     const suggestions = searchCities(query);
                     setCitySuggestions(suggestions);
-                    if (suggestions.length === 1 && suggestions[0].city.toLowerCase() === query.toLowerCase().split(',')[0].trim().toLowerCase()) {
-                      setData({ ...data, location: { city: suggestions[0].city, country: suggestions[0].country, countryCode: suggestions[0].countryCode } });
-                      setCitySuggestions([]);
-                    }
                   }}
                   placeholder="e.g., Mumbai, India or New York, USA"
                   style={{
@@ -335,32 +335,6 @@ export default function OnboardingCreator() {
                     ))}
                   </div>
                 )}
-              </label>
-
-              <label style={{ display: 'block' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Languages</div>
-                <select
-                  multiple
-                  value={data.languages}
-                  onChange={e => setData({ ...data, languages: Array.from(e.target.selectedOptions, o => o.value) })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.text,
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                  }}
-                >
-                  <option value="English">English</option>
-                  <option value="Hindi">Hindi</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="French">French</option>
-                  <option value="German">German</option>
-                  <option value="Mandarin">Mandarin</option>
-                  <option value="Japanese">Japanese</option>
-                </select>
               </label>
             </>
           )}
