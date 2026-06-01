@@ -56,29 +56,7 @@ export default function ValueSkinsStore() {
     }
 
     setLoadingProfession(profession);
-
-    try {
-      const res = await fetch('/api/skins/manage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId: account.id, valueSkin: profession }),
-      });
-
-      if (res.ok) {
-        setOwnedSkins([...ownedSkins, profession.toLowerCase()]);
-        alert('Profession unlocked! You can now upload a custom image in Settings.');
-        setLoadingProfession(null);
-      } else {
-        const err = await res.json();
-        alert(`Error: ${err.error}`);
-        setLoadingProfession(null);
-      }
-    } catch (err) {
-      console.error('Purchase failed:', err);
-      alert('Purchase failed');
-      setLoadingProfession(null);
-    }
+    router.push(`/payment/checkout?profession=${profession}`);
   };
 
   const filteredSkins = Object.entries(PROFESSIONS).filter(([name]) =>
@@ -181,7 +159,7 @@ export default function ValueSkinsStore() {
                     opacity: !canPurchase && !isOwned ? 0.5 : 1,
                   }}
                 >
-                  {isLoading ? 'Purchasing...' : isOwned ? 'Owned' : !canPurchase ? 'Max Skins' : 'Purchase'}
+                  {isLoading ? 'Redirecting...' : isOwned ? 'Owned' : !canPurchase ? 'Max Skins' : 'Purchase'}
                 </button>
               </div>
             );
