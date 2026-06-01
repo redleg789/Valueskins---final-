@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { searchCities } from '@/config/cities';
 import { C } from '@/theme/colors';
 
-type Step = 'identity' | 'social' | 'content' | 'languages' | 'brand-prefs' | 'deal-prefs' | 'pricing' | 'availability' | 'review';
+type Step = 'identity' | 'social' | 'content' | 'languages' | 'deal-prefs' | 'pricing' | 'availability' | 'review';
 
 interface CreatorOnboarding {
   // Identity
@@ -31,12 +31,6 @@ interface CreatorOnboarding {
   keywords: string[];
   archetype: string;
   introVideoUrl?: string;
-
-  // Brand preferences
-  dreamBrands: string[];
-  unwillingIndustries: string[];
-  preferredCategories: string[];
-  brandValues: string[];
 
   // Deal preferences
   collaborationOpenness: 'open' | 'selective' | 'closed';
@@ -97,10 +91,6 @@ export default function OnboardingCreator() {
     tone: '',
     keywords: [],
     archetype: '',
-    dreamBrands: [],
-    unwillingIndustries: [],
-    preferredCategories: [],
-    brandValues: [],
     collaborationOpenness: 'open',
     dealTypes: [],
     rateCard: {},
@@ -167,7 +157,7 @@ export default function OnboardingCreator() {
     }
   };
 
-  const steps: Step[] = ['identity', 'social', 'content', 'languages', 'brand-prefs', 'deal-prefs', 'pricing', 'availability', 'review'];
+  const steps: Step[] = ['identity', 'social', 'content', 'languages', 'deal-prefs', 'pricing', 'availability', 'review'];
   const currentStepIndex = steps.indexOf(step);
 
   const handleComplete = async () => {
@@ -594,64 +584,6 @@ export default function OnboardingCreator() {
           )}
 
 
-          {step === 'brand-prefs' && (
-            <>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, color: C.text, marginBottom: '16px' }}>Brand Preferences</h2>
-              <label style={{ display: 'block', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Dream Brands</div>
-                <input
-                  type="text"
-                  placeholder="Brands you'd love to work with (comma-separated)"
-                  value={data.dreamBrands.join(', ')}
-                  onChange={e => setData({ ...data, dreamBrands: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.text,
-                    borderRadius: '8px',
-                  }}
-                />
-              </label>
-
-              <label style={{ display: 'block', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Industries You're NOT Interested In</div>
-                <input
-                  type="text"
-                  placeholder="e.g., Alcohol, Tobacco, Politics"
-                  value={data.unwillingIndustries.join(', ')}
-                  onChange={e => setData({ ...data, unwillingIndustries: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.text,
-                    borderRadius: '8px',
-                  }}
-                />
-              </label>
-
-              <label style={{ display: 'block' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: C.textSecondary, marginBottom: '6px' }}>Brand Values Alignment</div>
-                <input
-                  type="text"
-                  placeholder="e.g., Sustainability, Diversity, Innovation"
-                  value={data.brandValues.join(', ')}
-                  onChange={e => setData({ ...data, brandValues: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: `1px solid ${C.border}`,
-                    background: C.bg,
-                    color: C.text,
-                    borderRadius: '8px',
-                  }}
-                />
-              </label>
-            </>
-          )}
 
           {step === 'deal-prefs' && (
             <>
