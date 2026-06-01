@@ -73,3 +73,84 @@ export async function runMigrations2() {
     }
   }
 }
+
+export async function addRemindersTables() {
+  const migrations = [
+    {
+      name: 'create_deal_reminders_table',
+      sql: `
+        CREATE TABLE IF NOT EXISTS deal_reminders (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          deal_id TEXT NOT NULL,
+          type VARCHAR(50) NOT NULL,
+          reminder_date TIMESTAMPTZ NOT NULL,
+          reminded_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(user_id, deal_id, type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_deal_reminders_user_date ON deal_reminders(user_id, reminder_date);
+      `,
+    },
+    {
+      name: 'create_deal_files_table',
+      sql: `
+        CREATE TABLE IF NOT EXISTS deal_files (
+          id UUID PRIMARY KEY,
+          deal_id TEXT NOT NULL,
+          file_name VARCHAR(255) NOT NULL,
+          file_url TEXT NOT NULL,
+          uploaded_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      `,
+    },
+    {
+      name: 'add_content_calendar_column',
+      sql: `
+        ALTER TABLE deals ADD COLUMN IF NOT EXISTS 
+        content_due_date TIMESTAMPTZ;
+      `,
+    },
+  ];
+
+  for (const migration of migrations) {
+    try {
+      await query(migration.sql);
+    } catch (error) {
+      console.log(`Migration ${migration.name} skipped or already applied`);
+    }
+  }
+}
+
+    {
+      name: 'create_deal_escrow_table',
+      sql: `
+        CREATE TABLE IF NOT EXISTS deal_escrow (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          deal_id TEXT NOT NULL UNIQUE,
+          razorpay_order_id VARCHAR(255) NOT NULL UNIQUE,
+          razorpay_payment_id VARCHAR(255),
+          amount DECIMAL(10, 2) NOT NULL,
+          status VARCHAR(50) DEFAULT 'pending',
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          released_at TIMESTAMPTZ,
+          refunded_at TIMESTAMPTZ
+        );
+        CREATE INDEX IF NOT EXISTS idx_deal_escrow_deal_id ON deal_escrow(deal_id);
+      `,
+    },
+    {
+      name: 'create_deal_payments_table',
+      sql: `
+        CREATE TABLE IF NOT EXISTS deal_payments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          deal_id TEXT NOT NULL,
+          amount DECIMAL(10, 2) NOT NULL,
+          payment_date TIMESTAMPTZ,
+          status VARCHAR(50),
+          transaction_id VARCHAR(255),
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_deal_payments_deal_id ON deal_payments(deal_id);
+      `,
+    },
