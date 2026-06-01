@@ -10,6 +10,8 @@ export default function MarketplacePage() {
   const router = useRouter();
   const { account, loading } = useAuth();
   const [role, setRole] = useState<'creator' | 'brand' | null>(null);
+  const [hasValueskin, setHasValueskin] = useState(false);
+  const [view, setView] = useState<'main' | 'deals'>('main');
 
   useEffect(() => {
     if (!loading && account) {
@@ -18,8 +20,23 @@ export default function MarketplacePage() {
       
       if (isBrand) setRole('brand');
       else if (isCreator) setRole('creator');
+
+      // Check if user has at least one valueskin
+      checkValueskins();
     }
   }, [account, loading]);
+
+  const checkValueskins = async () => {
+    try {
+      const res = await fetch('/api/valueskins/list');
+      if (res.ok) {
+        const data = await res.json();
+        setHasValueskin(Array.isArray(data) && data.length > 0);
+      }
+    } catch (err) {
+      console.error('Failed to check valueskins:', err);
+    }
+  };
 
   const containerStyle: CSSProperties = {
     minHeight: '100vh',
@@ -109,27 +126,21 @@ export default function MarketplacePage() {
     marginBottom: '16px',
   };
 
-  const featuresGridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '20px',
-    marginTop: '32px',
-    padding: '32px',
-    background: 'rgba(37, 99, 235, 0.05)',
-    borderRadius: '12px',
+  const warningStyle: CSSProperties = {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+  };
+
+  const warningBoxStyle: CSSProperties = {
+    background: C.surface,
     border: `1px solid ${C.border}`,
-  };
-
-  const featureItemStyle: CSSProperties = {
-    fontSize: '14px',
-  };
-
-  const featureLabelStyle: CSSProperties = {
-    color: C.textSecondary,
-    display: 'block',
-    marginBottom: '4px',
-    fontSize: '12px',
-    textTransform: 'uppercase',
+    borderRadius: '12px',
+    padding: '48px 32px',
+    textAlign: 'center',
+    maxWidth: '500px',
   };
 
   if (loading) {
@@ -138,6 +149,29 @@ export default function MarketplacePage() {
         <div style={innerStyle}>
           <div style={{ textAlign: 'center', paddingTop: '60px', color: C.textSecondary }}>
             Loading...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasValueskin) {
+    return (
+      <div style={containerStyle}>
+        <div style={warningStyle}>
+          <div style={warningBoxStyle}>
+            <h1 style={{ fontSize: '32px', fontWeight: '800', marginBottom: '16px' }}>
+              ValuSkin Required
+            </h1>
+            <p style={{ color: C.textSecondary, marginBottom: '24px', fontSize: '16px' }}>
+              You must have at least one valueskin to enter the marketplace.
+            </p>
+            <button
+              onClick={() => router.push('/valueskins/store')}
+              style={buttonStyle}
+            >
+              Go to ValuSkins Store
+            </button>
           </div>
         </div>
       </div>
@@ -159,110 +193,99 @@ export default function MarketplacePage() {
             </p>
           </div>
 
-          <div style={gridStyle}>
-            {role === 'creator' && (
-              <div
-                style={cardStyle}
-                onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
-                onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
-              >
-                <span style={badgeStyle}>NEW</span>
-                <div style={cardTitleStyle}>Active Deals</div>
-                <p style={cardDescStyle}>
-                  Browse current brand opportunities and creator collaborations. Find your next project.
-                </p>
-                <button
-                  onClick={() => router.push('/deals/feed')}
-                  style={buttonStyle}
-                >
-                  View Deals
-                </button>
-              </div>
-            )}
-
-            {role === 'brand' && (
-              <>
+          {view === 'main' && (
+            <div style={gridStyle}>
+              {role === 'creator' && (
                 <div
                   style={cardStyle}
                   onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
                   onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
                 >
-                  <span style={badgeStyle}>CREATE</span>
-                  <div style={cardTitleStyle}>Create Campaign</div>
+                  <span style={badgeStyle}>BROWSE</span>
+                  <div style={cardTitleStyle}>Active Deals</div>
                   <p style={cardDescStyle}>
-                    Launch a new campaign and connect with creators who match your brand values.
+                    Browse current brand opportunities and creator collaborations. Find your next project.
                   </p>
                   <button
-                    onClick={() => router.push('/deals/create')}
+                    onClick={() => setView('deals')}
                     style={buttonStyle}
                   >
-                    Create Campaign
+                    View Deals
                   </button>
                 </div>
+              )}
 
-                <div
-                  style={cardStyle}
-                  onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
-                  onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
-                >
-                  <span style={badgeStyle}>MANAGE</span>
-                  <div style={cardTitleStyle}>Your Campaigns</div>
-                  <p style={cardDescStyle}>
-                    View and manage your existing campaigns. Track applications and progress.
-                  </p>
-                  <button
-                    onClick={() => router.push('/deals/feed')}
-                    style={buttonStyle}
+              {role === 'brand' && (
+                <>
+                  <div
+                    style={cardStyle}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
                   >
-                    View Campaigns
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                    <span style={badgeStyle}>CREATE</span>
+                    <div style={cardTitleStyle}>Create Campaign</div>
+                    <p style={cardDescStyle}>
+                      Launch a new campaign and connect with creators who match your brand values.
+                    </p>
+                    <button
+                      onClick={() => router.push('/deals/create')}
+                      style={buttonStyle}
+                    >
+                      Create Campaign
+                    </button>
+                  </div>
 
-          <div style={{ marginTop: '48px', padding: '40px', background: C.surface, borderRadius: '12px', border: `1px solid ${C.border}` }}>
-            <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '16px' }}>How It Works</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-              {role === 'creator' ? (
-                <>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>1</div>
-                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>Browse Deals</div>
-                    <p style={{ color: C.textSecondary, fontSize: '14px' }}>Find campaigns that match your niche and values</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>2</div>
-                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>Apply & Negotiate</div>
-                    <p style={{ color: C.textSecondary, fontSize: '14px' }}>Discuss terms and agree on deliverables</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>3</div>
-                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>Get Paid</div>
-                    <p style={{ color: C.textSecondary, fontSize: '14px' }}>Funds held in escrow. Released after delivery.</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>1</div>
-                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>Create Campaign</div>
-                    <p style={{ color: C.textSecondary, fontSize: '14px' }}>Define your deliverables and budget</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>2</div>
-                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>Find Creators</div>
-                    <p style={{ color: C.textSecondary, fontSize: '14px' }}>Browse and match with creators by value skins</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>3</div>
-                    <div style={{ fontWeight: '600', marginBottom: '8px' }}>Complete Deal</div>
-                    <p style={{ color: C.textSecondary, fontSize: '14px' }}>Escrow holds funds. Released after approval.</p>
+                  <div
+                    style={cardStyle}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
+                  >
+                    <span style={badgeStyle}>MANAGE</span>
+                    <div style={cardTitleStyle}>Your Campaigns</div>
+                    <p style={cardDescStyle}>
+                      View and manage your existing campaigns. Track applications and progress.
+                    </p>
+                    <button
+                      onClick={() => setView('deals')}
+                      style={buttonStyle}
+                    >
+                      View Campaigns
+                    </button>
                   </div>
                 </>
               )}
             </div>
-          </div>
+          )}
+
+          {view === 'deals' && (
+            <div style={{ marginBottom: '24px' }}>
+              <button
+                onClick={() => setView('main')}
+                style={{
+                  padding: '10px 16px',
+                  border: `1px solid ${C.border}`,
+                  background: 'transparent',
+                  color: C.text,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  marginBottom: '24px',
+                }}
+              >
+                Back
+              </button>
+              <div style={{ background: C.surface, borderRadius: '12px', padding: '24px', border: `1px solid ${C.border}` }}>
+                <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '16px' }}>
+                  {role === 'creator' ? 'Active Deals' : 'Your Campaigns'}
+                </h2>
+                <p style={{ color: C.textSecondary }}>
+                  {role === 'creator'
+                    ? 'Browse and apply to brand campaigns that match your valueskins.'
+                    : 'Manage your active campaigns and track creator applications.'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
