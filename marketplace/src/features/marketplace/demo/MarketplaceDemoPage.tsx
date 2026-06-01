@@ -294,7 +294,7 @@ export default function MarketplaceDemoPage() {
         .then(data => {
           if (!data.hasValueskin) {
             if (typeof window !== 'undefined') {
-              window.location.href = '/store';
+              window.location.href = '/valueskins/store';
             }
           } else {
             setAuthStatus('authenticated');
