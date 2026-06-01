@@ -69,13 +69,13 @@ export default function HomePage() {
           />
 
           <DashboardCard
-          <DashboardCard
             title="ValuSkins Store"
             desc="Unlock profession-based skins"
             link="/valueskins/store"
             color="#06b6d4"
           />
 
+          <DashboardCard
             title="Marketplace"
             desc="Discover brands, creators & deals"
             link="/marketplace"
