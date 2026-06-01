@@ -224,3 +224,28 @@ export async function addRemindersTables() {
         CREATE INDEX IF NOT EXISTS idx_deal_messages_deal_id ON deal_messages(deal_id);
       `,
     },
+
+    {
+      name: 'create_notifications_table',
+      sql: `
+        CREATE TABLE IF NOT EXISTS notifications (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id TEXT NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          message TEXT,
+          type VARCHAR(50),
+          read_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+        CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read_at);
+      `,
+    },
+    {
+      name: 'update_deals_add_value_skin_and_archived',
+      sql: `
+        ALTER TABLE deals 
+        ADD COLUMN IF NOT EXISTS value_skin VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT FALSE;
+      `,
+    },
