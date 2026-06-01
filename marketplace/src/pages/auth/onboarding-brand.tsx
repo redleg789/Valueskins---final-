@@ -214,7 +214,7 @@ export default function OnboardingBrand() {
         headers: { 'x-user-id': userId as string },
       }).catch(() => {});
 
-      router.push('/marketplace');
+      router.push('/demo/marketplace');
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -626,7 +626,7 @@ export default function OnboardingBrand() {
             </button>
           )}
           <button
-            onClick={() => router.push('/marketplace')}
+            onClick={() => router.push('/demo/marketplace')}
             style={{
               padding: '12px 20px',
               border: `1px solid ${C.border}`,
