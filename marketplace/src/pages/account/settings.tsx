@@ -91,6 +91,26 @@ export default function AccountSettings() {
     }
   };
 
+        {/* ValueSkins */}
+        <div style={{ background: C.bg, borderRadius: '12px', padding: '24px', border: `1px solid ${C.border}` }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: C.text, marginBottom: '12px' }}>ValueSkins</h2>
+          <p style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '16px' }}>
+            Manage your custom ValueSkin images and settings.
+          </p>
+          <Link href="/account/valueskins" style={{
+            display: 'inline-block',
+            padding: '10px 20px',
+            background: C.primary,
+            color: '#fff',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+          }}>
+            Manage ValueSkins
+          </Link>
+        </div>
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
@@ -203,10 +223,70 @@ export default function AccountSettings() {
           </Link>
         </div>
 
+        {/* ValueSkins */}
+        <div style={{ background: C.bg, borderRadius: '12px', padding: '24px', border: `1px solid ${C.border}` }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: C.text, marginBottom: '12px' }}>ValueSkins</h2>
+          <p style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '16px' }}>
+            Manage your custom ValueSkin images and settings.
+          </p>
+          <Link href="/account/valueskins" style={{
+            display: 'inline-block',
+            padding: '10px 20px',
+            background: C.primary,
+            color: '#fff',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+          }}>
+            Manage ValueSkins
+          </Link>
+        </div>
+
         {/* Logout */}
         <div style={{ background: C.bg, borderRadius: '12px', padding: '24px', border: `1px solid ${C.border}` }}>
+        {/* ValueSkins */}
+        <div style={{ background: C.bg, borderRadius: '12px', padding: '24px', border: `1px solid ${C.border}` }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: C.text, marginBottom: '12px' }}>ValueSkins</h2>
+          <p style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '16px' }}>
+            Manage your custom ValueSkin images and settings.
+          </p>
+          <Link href="/account/valueskins" style={{
+            display: 'inline-block',
+            padding: '10px 20px',
+            background: C.primary,
+            color: '#fff',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+          }}>
+            Manage ValueSkins
+          </Link>
+        </div>
+
           <h2 style={{ fontSize: '18px', fontWeight: 600, color: C.text, marginBottom: '12px' }}>Logout</h2>
           <button
+        {/* ValueSkins */}
+        <div style={{ background: C.bg, borderRadius: '12px', padding: '24px', border: `1px solid ${C.border}` }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, color: C.text, marginBottom: '12px' }}>ValueSkins</h2>
+          <p style={{ fontSize: '14px', color: C.textSecondary, marginBottom: '16px' }}>
+            Manage your custom ValueSkin images and settings.
+          </p>
+          <Link href="/account/valueskins" style={{
+            display: 'inline-block',
+            padding: '10px 20px',
+            background: C.primary,
+            color: '#fff',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: '14px',
+          }}>
+            Manage ValueSkins
+          </Link>
+        </div>
+
             onClick={handleLogout}
             style={{
               padding: '10px 20px',

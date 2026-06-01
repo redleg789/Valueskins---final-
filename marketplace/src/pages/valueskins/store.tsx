@@ -26,9 +26,6 @@ export default function ValueSkinsStore() {
   const [ownedSkins, setOwnedSkins] = useState<string[]>([]);
   const [filter, setFilter] = useState('');
   const [loadingProfession, setLoadingProfession] = useState<string | null>(null);
-  const [showImageUpload, setShowImageUpload] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (!account?.id) return;
@@ -47,30 +44,7 @@ export default function ValueSkinsStore() {
     fetchOwnedSkins();
   }, [account?.id]);
 
-  const handlePurchaseClick = (profession: string) => {
-    setShowImageUpload(profession);
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 500000) {
-        alert('Image must be less than 500KB');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setImageFile(file);
-    }
-  };
-
-  const handleConfirmPurchase = async (profession: string) => {
+  const handlePurchase = async (profession: string) => {
     if (!account?.id) {
       alert('Please log in first');
       return;
@@ -81,35 +55,28 @@ export default function ValueSkinsStore() {
       return;
     }
 
-    if (!imagePreview) {
-      alert('Please upload a custom image for your ValueSkin');
-      return;
-    }
-
     setLoadingProfession(profession);
 
     try {
-      const uploadRes = await fetch('/api/skins/upload', {
+      const res = await fetch('/api/skins/manage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          imageBase64: imagePreview,
-          profession: profession,
-          userId: account.id,
-        }),
+        body: JSON.stringify({ userId: account.id, valueSkin: profession }),
       });
 
-      if (!uploadRes.ok) {
-        throw new Error('Image upload failed');
+      if (res.ok) {
+        setOwnedSkins([...ownedSkins, profession.toLowerCase()]);
+        alert('Profession unlocked! You can now upload a custom image in Settings.');
+        setLoadingProfession(null);
+      } else {
+        const err = await res.json();
+        alert(`Error: ${err.error}`);
+        setLoadingProfession(null);
       }
-
-      const uploadData = await uploadRes.json();
-
-      router.push(`/payment/checkout?profession=${profession}&imageUrl=${encodeURIComponent(uploadData.imageUrl)}`);
     } catch (err) {
       console.error('Purchase failed:', err);
-      alert('Failed to process purchase');
+      alert('Purchase failed');
       setLoadingProfession(null);
     }
   };
@@ -128,7 +95,7 @@ export default function ValueSkinsStore() {
             ValueSkins Store
           </h1>
           <p style={{ fontSize: '16px', color: C.textSecondary, marginBottom: '24px' }}>
-            Choose your profession and create your unique value skin with a custom image. You can own up to 3 skins.
+            Choose your profession to unlock your unique value skin. You can own up to 3 skins. Upload custom images in Settings.
           </p>
           <p style={{ fontSize: '14px', color: C.accent, marginBottom: '24px' }}>
             Owned: {ownedSkins.length}/3
@@ -160,8 +127,7 @@ export default function ValueSkinsStore() {
         }}>
           {filteredSkins.map(([name, subProfessions]) => {
             const isOwned = ownedSkins.includes(name.toLowerCase());
-            const isCurrentlyUploading = loadingProfession === name;
-            const showingUpload = showImageUpload === name;
+            const isLoading = loadingProfession === name;
 
             return (
               <div
@@ -199,98 +165,24 @@ export default function ValueSkinsStore() {
                   </div>
                 </div>
 
-                {showingUpload && !isOwned && (
-                  <div style={{ marginBottom: '16px', padding: '12px', background: C.bg, borderRadius: '8px' }}>
-                    <p style={{ fontSize: '12px', fontWeight: '600', color: C.text, marginBottom: '8px' }}>
-                      Upload your custom ValueSkin image (max 500KB)
-                    </p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      disabled={isCurrentlyUploading}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: `1px solid ${C.border}`,
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        marginBottom: '8px',
-                      }}
-                    />
-                    {imagePreview && (
-                      <div style={{ marginBottom: '8px' }}>
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          style={{ maxWidth: '100%', maxHeight: '120px', borderRadius: '6px' }}
-                        />
-                      </div>
-                    )}
-                    {imageFile && (
-                      <p style={{ fontSize: '11px', color: C.accent, marginBottom: '8px' }}>
-                        Selected: {imageFile.name}
-                      </p>
-                    )}
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => handleConfirmPurchase(name)}
-                        disabled={!imageFile || isCurrentlyUploading}
-                        style={{
-                          flex: 1,
-                          padding: '8px',
-                          background: imageFile && !isCurrentlyUploading ? C.primary : C.textSecondary,
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: imageFile && !isCurrentlyUploading ? 'pointer' : 'not-allowed',
-                        }}
-                      >
-                        {isCurrentlyUploading ? 'Processing...' : 'Continue to Payment'}
-                      </button>
-                      <button
-                        onClick={() => { setShowImageUpload(null); setImageFile(null); setImagePreview(null); }}
-                        disabled={isCurrentlyUploading}
-                        style={{
-                          flex: 1,
-                          padding: '8px',
-                          background: 'transparent',
-                          color: C.text,
-                          border: `1px solid ${C.border}`,
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          cursor: isCurrentlyUploading ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {!showingUpload && (
-                  <button
-                    onClick={() => handlePurchaseClick(name)}
-                    disabled={isOwned || !canPurchase}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: isOwned ? C.border : canPurchase ? C.primary : C.textSecondary,
-                      color: isOwned ? C.textSecondary : '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: isOwned || !canPurchase ? 'not-allowed' : 'pointer',
-                      opacity: !canPurchase && !isOwned ? 0.5 : 1,
-                    }}
-                  >
-                    {isOwned ? 'Owned' : !canPurchase ? 'Max Skins' : 'Purchase'}
-                  </button>
-                )}
+                <button
+                  onClick={() => handlePurchase(name)}
+                  disabled={isOwned || !canPurchase || isLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: isOwned ? C.border : canPurchase ? C.primary : C.textSecondary,
+                    color: isOwned ? C.textSecondary : '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: isOwned || !canPurchase || isLoading ? 'not-allowed' : 'pointer',
+                    opacity: !canPurchase && !isOwned ? 0.5 : 1,
+                  }}
+                >
+                  {isLoading ? 'Purchasing...' : isOwned ? 'Owned' : !canPurchase ? 'Max Skins' : 'Purchase'}
+                </button>
               </div>
             );
           })}
