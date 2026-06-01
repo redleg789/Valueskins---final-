@@ -207,6 +207,48 @@ export default function OnboardingCreator() {
     }
   };
 
+
+  const fillDemoData = () => {
+    setData({
+      ...data,
+      displayName: 'Demo Creator',
+      location: { city: 'Mumbai', country: 'India', countryCode: 'IN' },
+      timezone: 'IST',
+      languages: ['English', 'Hindi'],
+      ageRange: '25-34',
+      socialAccounts: [{
+        platform: 'instagram',
+        username: 'democreator',
+        followerCount: 50000,
+        engagementRate: 5.2,
+        audienceDemographics: { ageRanges: ['18-24', '25-34'], genders: ['Female', 'Male'] }
+      }],
+      niches: ['Fashion', 'Lifestyle'],
+      contentStyle: 'Minimalist',
+      tone: 'Friendly',
+      keywords: ['sustainable', 'eco-friendly'],
+      archetype: 'lifestyle',
+      collaborationOpenness: 'open',
+      dealTypes: ['sponsored post', 'product placement'],
+      rateCard: { post: 5000, story: 2000, reel: 7500 },
+      minDealValue: 1000,
+      negotiable: true,
+      workingHours: { start: '09:00', end: '18:00' },
+      shootAvailability: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      travelWilling: true,
+      travelBudget: '5000',
+      turnaroundDays: 5,
+      revisionLimit: 2,
+      communicationStyle: 'professional',
+      equipment: ['camera', 'lights', 'tripod'],
+      hasStudio: true,
+      personalPreferences: { clothingSizes: 'M', foodAllergies: 'None' },
+      previousCampaigns: [{ brand: 'Nike', contentType: 'sponsored post', date: '2026-01-15' }],
+      testimonials: ['Great to work with!'],
+      exclusivityRestrictions: ['Competing brands'],
+    });
+  };
+
   const handleSkip = () => {
     setShowSkipWarning(true);
   };
@@ -806,6 +848,21 @@ export default function OnboardingCreator() {
               {loading ? 'Completing...' : 'Complete Setup'}
             </button>
           )}
+          <button
+            onClick={fillDemoData}
+            style={{
+              padding: '12px 20px',
+              border: `1px solid ${C.border}`,
+              background: 'transparent',
+              color: C.accent,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: '13px',
+            }}
+          >
+            Fill Demo Data
+          </button>
           <button
             onClick={handleSkip}
             style={{
