@@ -94,68 +94,9 @@ const PROFESSIONS = {
   'Business':       { name: 'Business',       subProfessions: ['CEO','Entrepreneur','Consultant','Sales Manager','HR Manager','Operations Manager','Marketing Manager','Business Analyst'] },
 };
 
-const BRAND_MARKETPLACE_CREATORS = [
-  // Software Engineers
-  {
-    name: 'Alex Rivera', handle: '@alex_codes', valueSkin: 'Software Engineer',
-    followers: '890K', engagement: '7.2%', rate: '$4,500', matchScore: '96%',
-    featured: true, willingToBarter: true,
-    timezone: 'UTC-5 (EST)', responseTimeHrs: 4, minDealUsd: 2000,
-    audienceAgeRange: '25-34', audienceLocation: 'USA', audienceLang: 'English',
-    dealTypes: ['Paid', 'Equity', 'Barter'], openToDeals: true,
-    ndaOk: true, usageRightsOk: true,
-    dealCompletionRate: 97, incomeTier: '50k+', isFirstDeal: false,
-    rateCard: { reel: '$4,500', story: '$1,200', post: '$2,800' },
-    exclusivitySlotFree: true, revisionLimit: 2, usageRightsDays: 90,
-    availableFrom: 'Now', contractMode: 'both',
-    portfolio: ['TechFlow collab — 2.1M views', 'CloudBase integration — 890K views'],
-  },
-  // UX/UI Designers
-  {
-    name: 'Priya Sharma', handle: '@priya_designs', valueSkin: 'UX/UI Designer',
-    followers: '1.2M', engagement: '5.8%', rate: '$6,000', matchScore: '91%',
-    featured: false, willingToBarter: false,
-    timezone: 'UTC+5:30 (IST)', responseTimeHrs: 12, minDealUsd: 4000,
-    audienceAgeRange: '18-24', audienceLocation: 'India', audienceLang: 'English',
-    dealTypes: ['Paid', 'Revenue Share'], openToDeals: true,
-    ndaOk: true, usageRightsOk: false,
-    dealCompletionRate: 91, incomeTier: '100k+', isFirstDeal: false,
-    rateCard: { reel: '$6,000', story: '$1,800', post: '$4,000' },
-    exclusivitySlotFree: false, revisionLimit: 3, usageRightsDays: 60,
-    availableFrom: 'Mar 15', contractMode: 'long-term',
-    portfolio: ['Figma design showcase — 3.4M views', 'Framer landing page — 1.2M views'],
-  },
-  // Fitness Coaches
-  {
-    name: 'Marcus Chen', handle: '@marcus_fitness', valueSkin: 'Fitness Coach',
-    followers: '650K', engagement: '8.1%', rate: '$3,200', matchScore: '84%',
-    featured: false, willingToBarter: true,
-    timezone: 'UTC-8 (PST)', responseTimeHrs: 24, minDealUsd: 500,
-    audienceAgeRange: '18-24', audienceLocation: 'USA', audienceLang: 'English',
-    dealTypes: ['Paid', 'Gifted Product', 'Barter', 'Ambassador'], openToDeals: true,
-    ndaOk: false, usageRightsOk: true,
-    dealCompletionRate: 88, incomeTier: '10k+', isFirstDeal: false,
-    rateCard: { reel: '$3,200', story: '$800', post: '$1,800' },
-    exclusivitySlotFree: true, revisionLimit: 2, usageRightsDays: 30,
-    availableFrom: 'Now', contractMode: 'one-off',
-    portfolio: ['Nike Training series — 4.1M views', 'MyProtein review — 980K views'],
-  },
-  // Data Scientists
-  {
-    name: 'Sarah Kim', handle: '@sarah_data', valueSkin: 'Data Scientist',
-    followers: '420K', engagement: '6.5%', rate: '$5,200', matchScore: '92%',
-    featured: true, willingToBarter: false,
-    timezone: 'UTC-8 (PST)', responseTimeHrs: 8, minDealUsd: 3000,
-    audienceAgeRange: '25-34', audienceLocation: 'USA', audienceLang: 'English',
-    dealTypes: ['Paid', 'Equity'], openToDeals: true,
-    ndaOk: true, usageRightsOk: true,
-    dealCompletionRate: 95, incomeTier: '50k+', isFirstDeal: false,
-    rateCard: { reel: '$5,200', story: '$1,500', post: '$3,400' },
-    exclusivitySlotFree: true, revisionLimit: 2, usageRightsDays: 60,
-    availableFrom: 'Now', contractMode: 'both',
-    portfolio: ['DataStack AI tutorial — 1.8M views', 'Kaggle walkthrough — 920K views'],
-  },
-];
+// Creator data is now fetched from backend via /api/creators/match
+// No hardcoded creators - all creator data comes from the backend API
+const BRAND_MARKETPLACE_CREATORS: any[] = [];
 
 const BRAND_CATEGORIES: Record<string, { name: string; subCategories: string[] }> = {
   'Company Size':  { name: 'Company Size',  subCategories: ['Startup', 'SMB', 'Mid-Market', 'Enterprise', 'Agency', 'Solo Brand', 'Non-Profit', 'Government'] },
