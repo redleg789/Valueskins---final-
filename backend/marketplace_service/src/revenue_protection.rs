@@ -311,13 +311,12 @@ impl RevenueProtectionService {
         let mut blocking_reasons = Vec::new();
 
         // Gate 1: Payment completed
-        let payment: Option<(String,)> = sqlx::query_as(
+        let payment = sqlx::query_as::<_, (String,)>(
             "SELECT status FROM payments WHERE deal_room_id = $1 AND status = 'completed'"
         )
         .bind(req.deal_id)
         .fetch_optional(pool)
-        .await?
-        .flatten();
+        .await?;
 
         if payment.is_none() {
             gates_passed.insert("payment_completed".to_string(), false);
@@ -327,13 +326,12 @@ impl RevenueProtectionService {
         }
 
         // Gate 2: Deliverable verified
-        let deliverable: Option<(String,)> = sqlx::query_as(
+        let deliverable = sqlx::query_as::<_, (String,)>(
             "SELECT status FROM deliverables WHERE deal_id = $1 AND status = 'approved'"
         )
         .bind(req.deal_id)
         .fetch_optional(pool)
-        .await?
-        .flatten();
+        .await?;
 
         if deliverable.is_none() {
             gates_passed.insert("deliverable_verified".to_string(), false);
@@ -343,13 +341,12 @@ impl RevenueProtectionService {
         }
 
         // Gate 3: Escrow released
-        let escrow: Option<(String,)> = sqlx::query_as(
+        let escrow = sqlx::query_as::<_, (String,)>(
             "SELECT status FROM escrow WHERE deal_id = $1 AND status = 'released'"
         )
         .bind(req.deal_id)
         .fetch_optional(pool)
-        .await?
-        .flatten();
+        .await?;
 
         if escrow.is_none() {
             gates_passed.insert("escrow_released".to_string(), false);
