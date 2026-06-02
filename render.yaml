@@ -10,4 +10,22 @@ services:
         value: info
       - key: DATABASE_URL
         sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: API_KEY_HMAC_SALT
+        value: api_key_hmac_salt_development_key_change_in_production_12345
+      - key: VERIFICATION_HMAC_SECRET
+        value: verification_hmac_secret_development_key_change_in_production_12345
+      - key: PLATFORM_SIGNING_KEY_ED25519
+        value: Ui+8R4YRtehZkUYV6TXVbE/gypplxbT/W9/VXagbVnQ=
+      - key: ALLOWED_ORIGINS
+        value: https://valueskins-final.vercel.app
+      - key: SMTP_HOST
+        value: smtp.example.com
+      - key: SMTP_USER
+        value: user
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: noreply@valueskins.io
     autoDeploy: true
