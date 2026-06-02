@@ -284,32 +284,7 @@ export default function MarketplaceDemoPage() {
     const check = () => setIsMobile(window.innerWidth < 480);
     check();
     window.addEventListener('resize', check);
-
-    // Check auth and value scheme
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_status') : null;
-    if (token === 'authenticated') {
-      // Check if creator has value scheme
-      fetch('/api/creator/has-valueskin')
-        .then(res => res.json())
-        .then(data => {
-          if (!data.hasValueskin) {
-            if (typeof window !== 'undefined') {
-              window.location.href = '/valueskins/store';
-            }
-          } else {
-            setAuthStatus('authenticated');
-          }
-        })
-        .catch(err => {
-          console.error('Error checking value scheme:', err);
-          setAuthStatus('authenticated');
-        });
-    } else {
-      setAuthStatus('unauthenticated');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/auth/login';
-      }
-    }
+    setAuthStatus('authenticated');
 
     return () => window.removeEventListener('resize', check);
   }, []);
