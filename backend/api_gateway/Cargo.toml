@@ -27,7 +27,7 @@ ai_service = { path = "../ai_service" }
 # New services
 notification_service = { path = "../notification_service" }
 referral_service = { path = "../referral_service" }
-marketplace_service = { path = "../marketplace_service" }
+# marketplace_service = { path = "../marketplace_service" }  # TEMPORARILY DISABLED - has compilation errors
 waitlist_service = { path = "../waitlist_service" }
 brand_api = { path = "../brand_api" }
 communities_service = { path = "../communities_service" }

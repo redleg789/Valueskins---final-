@@ -24,8 +24,8 @@ use recommendation_service::service::RecommendationService;
 // Modular Monolith Handler Imports
 use waitlist_service::handlers as waitlist_handlers;
 use referral_service::handlers as referral_handlers;
-use marketplace_service::handlers as marketplace_handlers;
-use marketplace_service::interest_handlers as interest_handlers;
+// use marketplace_service::handlers as marketplace_handlers;  // TEMPORARILY DISABLED
+// use marketplace_service::interest_handlers as interest_handlers;  // TEMPORARILY DISABLED
 use brand_api::handlers as brand_handlers;
 use notification_service::handlers as notification_handlers;
 use notification_service::email::EmailService;
@@ -595,11 +595,12 @@ async fn main() -> std::io::Result<()> {
             )
 
             // Creator Interest Signups (public — for acquisition/traction)
-            .service(
-                web::scope("/interest")
-                    .route("/signup", web::post().to(interest_handlers::create_interest_signup))
-                    .route("/signup/{id}", web::get().to(interest_handlers::get_interest_signup))
-            )
+            // TEMPORARILY DISABLED due to marketplace_service compilation errors
+            // .service(
+            //     web::scope("/interest")
+            //         .route("/signup", web::post().to(interest_handlers::create_interest_signup))
+            //         .route("/signup/{id}", web::get().to(interest_handlers::get_interest_signup))
+            // )
 
             // Public media kit view (no auth)
             .service(
@@ -621,7 +622,7 @@ async fn main() -> std::io::Result<()> {
                             .route("/me/profession", web::post().to(handlers::persona::set_my_profession))
                             .route("/{id}", web::get().to(handlers::persona::get_persona))
                             .route("/{id}/skins", web::get().to(handlers::persona::get_persona_skins))
-                            .route("/{id}/trust", web::get().to(marketplace_handlers::get_trust_score))
+                            // .route("/{id}/trust", web::get().to(marketplace_handlers::get_trust_score))  // TEMPORARILY DISABLED
                     )
 
                     // Public ValueSkin search and profile lookup for event tagging
@@ -641,38 +642,40 @@ async fn main() -> std::io::Result<()> {
                     )
 
                     // Marketplace (authenticated — requires ValueSkin)
-                    .service(
-                        web::scope("/marketplace")
-                            .route("/professions", web::get().to(marketplace_handlers::list_professions))
-                            .route("/opportunities", web::get().to(marketplace_handlers::list_opportunities))
-                            .route("/opportunities", web::post().to(marketplace_handlers::create_opportunity))
-                            .route("/opportunities/{id}", web::get().to(marketplace_handlers::get_opportunity))
-                            .route("/applications", web::post().to(marketplace_handlers::apply_to_opportunity))
-                            .route("/applications/mine", web::get().to(marketplace_handlers::get_my_applications))
-                            .route("/stats", web::get().to(marketplace_handlers::get_stats))
-                            // Discovery throttle: brand scans a creator profile
-                            .route("/scan/{persona_id}", web::post().to(marketplace_handlers::scan_creator))
-                    )
+                    // TEMPORARILY DISABLED due to marketplace_service compilation errors
+                    // .service(
+                    //     web::scope("/marketplace")
+                    //         .route("/professions", web::get().to(marketplace_handlers::list_professions))
+                    //         .route("/opportunities", web::get().to(marketplace_handlers::list_opportunities))
+                    //         .route("/opportunities", web::post().to(marketplace_handlers::create_opportunity))
+                    //         .route("/opportunities/{id}", web::get().to(marketplace_handlers::get_opportunity))
+                    //         .route("/applications", web::post().to(marketplace_handlers::apply_to_opportunity))
+                    //         .route("/applications/mine", web::get().to(marketplace_handlers::get_my_applications))
+                    //         .route("/stats", web::get().to(marketplace_handlers::get_stats))
+                    //         // Discovery throttle: brand scans a creator profile
+                    //         .route("/scan/{persona_id}", web::post().to(marketplace_handlers::scan_creator))
+                    // )
 
                     // Deal Rooms — private negotiation between brand and creator
-                    .service(
-                        web::scope("/deal-rooms")
-                            .route("", web::post().to(marketplace_handlers::open_deal_room))
-                            .route("", web::get().to(marketplace_handlers::list_deal_rooms))
-                            .route("/{id}/offers", web::post().to(marketplace_handlers::make_offer))
-                            .route("/{id}/soft-hold", web::post().to(marketplace_handlers::create_soft_hold))
-                            .route("/{id}/checklist", web::get().to(marketplace_handlers::get_checklist))
-                            .route("/{id}/escrow", web::post().to(marketplace_handlers::create_escrow_stages))
-                            .route("/{id}/repeat", web::post().to(marketplace_handlers::repeat_collab))
-                            .route("/{id}/messages", web::post().to(handlers::messages::post_message))
-                            .route("/{id}/messages", web::get().to(handlers::messages::get_messages))
-                            .route("/{id}/disputes", web::post().to(marketplace_handlers::create_dispute))
-                            .route("/{id}/disputes", web::get().to(marketplace_handlers::list_deal_room_disputes))
-                            .route("/{id}/payment-preferences", web::post().to(marketplace_handlers::save_payment_preferences))
-                            .route("/{id}/payment-preferences", web::get().to(marketplace_handlers::get_payment_preferences))
-                            .route("/{id}/finalize", web::post().to(marketplace_handlers::finalize_deal))
-                            .route("/{id}/status", web::get().to(marketplace_handlers::get_deal_room_status))
-                    )
+                    // TEMPORARILY DISABLED due to marketplace_service compilation errors
+                    // .service(
+                    //     web::scope("/deal-rooms")
+                    //         .route("", web::post().to(marketplace_handlers::open_deal_room))
+                    //         .route("", web::get().to(marketplace_handlers::list_deal_rooms))
+                    //         .route("/{id}/offers", web::post().to(marketplace_handlers::make_offer))
+                    //         .route("/{id}/soft-hold", web::post().to(marketplace_handlers::create_soft_hold))
+                    //         .route("/{id}/checklist", web::get().to(marketplace_handlers::get_checklist))
+                    //         .route("/{id}/escrow", web::post().to(marketplace_handlers::create_escrow_stages))
+                    //         .route("/{id}/repeat", web::post().to(marketplace_handlers::repeat_collab))
+                    //         .route("/{id}/messages", web::post().to(handlers::messages::post_message))
+                    //         .route("/{id}/messages", web::get().to(handlers::messages::get_messages))
+                    //         .route("/{id}/disputes", web::post().to(marketplace_handlers::create_dispute))
+                    //         .route("/{id}/disputes", web::get().to(marketplace_handlers::list_deal_room_disputes))
+                    //         .route("/{id}/payment-preferences", web::post().to(marketplace_handlers::save_payment_preferences))
+                    //         .route("/{id}/payment-preferences", web::get().to(marketplace_handlers::get_payment_preferences))
+                    //         .route("/{id}/finalize", web::post().to(marketplace_handlers::finalize_deal))
+                    //         .route("/{id}/status", web::get().to(marketplace_handlers::get_deal_room_status))
+                    // )
 
                     // Offer round responses
                     .service(
