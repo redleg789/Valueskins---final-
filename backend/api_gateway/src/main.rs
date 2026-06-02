@@ -1,10 +1,12 @@
 mod handlers;
 mod middleware;
 mod routes;
+mod websocket;
 
 use actix_cors::Cors;
 use actix_governor::{Governor, GovernorConfigBuilder};
 use actix_web::{web, App, HttpServer, HttpResponse, Responder, error::JsonPayloadError};
+use actix_web_actors::ws;
 use dotenv::dotenv;
 use shared::db::get_db_pool;
 use shared::logging;
@@ -443,6 +445,10 @@ async fn main() -> std::io::Result<()> {
     ).expect("Failed to initialize reputation service");
     let reputation_data = web::Data::new(std::sync::Arc::new(reputation_svc));
 
+    // Initialize real-time server for WebSocket broadcasts
+    let realtime_server = std::sync::Arc::new(websocket::RealTimeServer::new(1000));
+    let realtime_data = web::Data::from(realtime_server.clone());
+
     tracing::info!("Starting Valueskins API at http://0.0.0.0:8080");
 
     HttpServer::new(move || {
@@ -513,11 +519,14 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::from(platform_cfg.clone()))
             .app_data(reputation_data.clone())
             .app_data(phone_store.clone())
+            .app_data(realtime_data.clone())
 
             // === PUBLIC ROUTES (no auth required) ===
             .route("/health", web::get().to(health_check))
             .route("/health/live", web::get().to(health_check))
             .route("/health/ready", web::get().to(health_ready))
+            // WebSocket for real-time updates
+            .route("/ws", web::get().to(websocket::ws_handler))
             // Prometheus metrics — bearer-token gated (internal scraper only)
             .route("/metrics", web::get().to(shared::observability::metrics::metrics_handler))
 
