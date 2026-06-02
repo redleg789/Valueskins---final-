@@ -11,7 +11,6 @@ import { useLevelConfig, useReputationConfig } from '@/lib/useConfigStorage';
 import { useDealSync, type DealState, type DealRoomPhase, type SharedApplication, type Campaign, type ChatMessage } from '@/features/valueskins/core/deals/useDealSync';
 import { useFirebaseRoom } from '@/features/valueskins/core/realtime/useFirebaseRoom';
 import { autoMatchCreators, type AutoMatchResult } from '@/lib/autoMatch';
-import EventManagementPage from '@/features/events/EventManagementPage';
 import { sendAutoMatchNotifications } from '@/lib/autoMatchNotifications';
 import {
   type ValueSkinMap,
@@ -25,7 +24,6 @@ import {
   defaultAboutMe,
 } from '@/features/valueskins/core/identity/AvatarOptions';
 import { STICKER_MANIFEST } from '@/features/valueskins/core/stickers/sticker-manifest';
-import { TimelineView, DeliverablesView, InvoiceView, ContractView } from '@/components/DealPhaseExtensions';
 
 /** Get sticker image path for any profession — checks PROFESSION_BADGES first, then auto-generated manifest */
 function getStickerForProfession(profession: string): string | undefined {
@@ -94,9 +92,68 @@ const PROFESSIONS = {
   'Business':       { name: 'Business',       subProfessions: ['CEO','Entrepreneur','Consultant','Sales Manager','HR Manager','Operations Manager','Marketing Manager','Business Analyst'] },
 };
 
-// Creator data is now fetched from backend via /api/creators/match
-// No hardcoded creators - all creator data comes from the backend API
-const BRAND_MARKETPLACE_CREATORS: any[] = [];
+const BRAND_MARKETPLACE_CREATORS = [
+  // Software Engineers
+  {
+    name: 'Alex Rivera', handle: '@alex_codes', valueSkin: 'Software Engineer',
+    followers: '890K', engagement: '7.2%', rate: '$4,500', matchScore: '96%',
+    featured: true, willingToBarter: true,
+    timezone: 'UTC-5 (EST)', responseTimeHrs: 4, minDealUsd: 2000,
+    audienceAgeRange: '25-34', audienceLocation: 'USA', audienceLang: 'English',
+    dealTypes: ['Paid', 'Equity', 'Barter'], openToDeals: true,
+    ndaOk: true, usageRightsOk: true,
+    dealCompletionRate: 97, incomeTier: '50k+', isFirstDeal: false,
+    rateCard: { reel: '$4,500', story: '$1,200', post: '$2,800' },
+    exclusivitySlotFree: true, revisionLimit: 2, usageRightsDays: 90,
+    availableFrom: 'Now', contractMode: 'both',
+    portfolio: ['TechFlow collab — 2.1M views', 'CloudBase integration — 890K views'],
+  },
+  // UX/UI Designers
+  {
+    name: 'Priya Sharma', handle: '@priya_designs', valueSkin: 'UX/UI Designer',
+    followers: '1.2M', engagement: '5.8%', rate: '$6,000', matchScore: '91%',
+    featured: false, willingToBarter: false,
+    timezone: 'UTC+5:30 (IST)', responseTimeHrs: 12, minDealUsd: 4000,
+    audienceAgeRange: '18-24', audienceLocation: 'India', audienceLang: 'English',
+    dealTypes: ['Paid', 'Revenue Share'], openToDeals: true,
+    ndaOk: true, usageRightsOk: false,
+    dealCompletionRate: 91, incomeTier: '100k+', isFirstDeal: false,
+    rateCard: { reel: '$6,000', story: '$1,800', post: '$4,000' },
+    exclusivitySlotFree: false, revisionLimit: 3, usageRightsDays: 60,
+    availableFrom: 'Mar 15', contractMode: 'long-term',
+    portfolio: ['Figma design showcase — 3.4M views', 'Framer landing page — 1.2M views'],
+  },
+  // Fitness Coaches
+  {
+    name: 'Marcus Chen', handle: '@marcus_fitness', valueSkin: 'Fitness Coach',
+    followers: '650K', engagement: '8.1%', rate: '$3,200', matchScore: '84%',
+    featured: false, willingToBarter: true,
+    timezone: 'UTC-8 (PST)', responseTimeHrs: 24, minDealUsd: 500,
+    audienceAgeRange: '18-24', audienceLocation: 'USA', audienceLang: 'English',
+    dealTypes: ['Paid', 'Gifted Product', 'Barter', 'Ambassador'], openToDeals: true,
+    ndaOk: false, usageRightsOk: true,
+    dealCompletionRate: 88, incomeTier: '10k+', isFirstDeal: false,
+    rateCard: { reel: '$3,200', story: '$800', post: '$1,800' },
+    exclusivitySlotFree: true, revisionLimit: 2, usageRightsDays: 30,
+    availableFrom: 'Now', contractMode: 'one-off',
+    portfolio: ['Nike Training series — 4.1M views', 'MyProtein review — 980K views'],
+  },
+  // Data Scientists
+  {
+    name: 'Sarah Kim', handle: '@sarah_data', valueSkin: 'Data Scientist',
+    followers: '420K', engagement: '6.5%', rate: '$5,200', matchScore: '92%',
+    featured: true, willingToBarter: false,
+    timezone: 'UTC-8 (PST)', responseTimeHrs: 8, minDealUsd: 3000,
+    audienceAgeRange: '25-34', audienceLocation: 'USA', audienceLang: 'English',
+    dealTypes: ['Paid', 'Equity'], openToDeals: true,
+    ndaOk: true, usageRightsOk: true,
+    dealCompletionRate: 95, incomeTier: '50k+', isFirstDeal: false,
+    rateCard: { reel: '$5,200', story: '$1,500', post: '$3,400' },
+    exclusivitySlotFree: true, revisionLimit: 2, usageRightsDays: 60,
+    availableFrom: 'Now', contractMode: 'both',
+    portfolio: ['DataStack AI tutorial — 1.8M views', 'Kaggle walkthrough — 920K views'],
+  },
+];
 
 const BRAND_CATEGORIES: Record<string, { name: string; subCategories: string[] }> = {
   'Company Size':  { name: 'Company Size',  subCategories: ['Startup', 'SMB', 'Mid-Market', 'Enterprise', 'Agency', 'Solo Brand', 'Non-Profit', 'Government'] },
@@ -205,10 +262,10 @@ const MOCK_REPUTATION = {
 };
 
 export default function MarketplaceDemoPage() {
-  const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
+  const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications'>(() => {
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
-      if (p === '/feed' || p === '/demo/marketplace' || p === '/') return 'mim';
+      if (p === '/feed' || p === '/marketplace' || p === '/') return 'mim';
       if (p === '/explore') return 'explore';
       if (p === '/store') return 'store';
       if (p === '/messages') return 'messages';
@@ -225,7 +282,17 @@ export default function MarketplaceDemoPage() {
     const check = () => setIsMobile(window.innerWidth < 480);
     check();
     window.addEventListener('resize', check);
-    setAuthStatus('authenticated');
+
+    // Check auth
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_status') : null;
+    if (token === 'authenticated') {
+      setAuthStatus('authenticated');
+    } else {
+      setAuthStatus('unauthenticated');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
+    }
 
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -423,34 +490,6 @@ export default function MarketplaceDemoPage() {
   const [marketplaceRole, setMarketplaceRole] = useState<'none' | 'creator' | 'brand'>('none');
   const [brandValueSkins, setBrandValueSkins] = useState<string[]>([]);
   const [activeBrandSkin, setActiveBrandSkin] = useState<string | null>(null);
-
-  // Fetch creators from backend API when brand skin changes
-  useEffect(() => {
-    if (!activeBrandSkin) {
-      setBackendCreators([]);
-      return;
-    }
-    setCreatorsLoading(true);
-    fetch(`/api/creators/match?brandValueSkin=${encodeURIComponent(activeBrandSkin)}&limit=50`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.creators && Array.isArray(d.creators)) {
-          setBackendCreators(d.creators.map((c: any, idx: number) => ({
-            ...c,
-            valueSkin: activeBrandSkin,
-            _origIdx: idx,
-            rate: c.rate || '$0',
-            featured: false,
-            willingToBarter: true,
-          })));
-        }
-      })
-      .catch(e => {
-        console.error('Failed to fetch creators:', e);
-        setBackendCreators([]);
-      })
-      .finally(() => setCreatorsLoading(false));
-  }, [activeBrandSkin]);
 
   // Brand ValueSkin as marketing — brands can promote products/campaigns via their skin
   const [brandProfileSelections, setBrandProfileSelections] = useState<Record<string, string>>({});
@@ -1109,9 +1148,9 @@ export default function MarketplaceDemoPage() {
     // Firebase always active
     if (firebaseState.notifications.length > 0) {
       setFirebaseNotifications(firebaseState.notifications);
-      const newNotifs = firebaseState.notifications.filter((n: any) => !n.read);
+      const newNotifs = firebaseState.notifications.filter(n => !n.read);
       if (newNotifs.length > 0) {
-        newNotifs.forEach((n: any) => {
+        newNotifs.forEach(n => {
           const msg = n.type === 'campaign' ? `New campaign: ${n.message}` : n.type === 'application' ? `New application: ${n.message}` : `Message: ${n.message}`;
           setNotifications(prev => [{ id: parseInt(n.id) || Date.now(), type: n.type, text: msg, time: 'just now', read: false }, ...prev.slice(0, 9)]);
           // Feature 3: Show toast notification
@@ -1125,8 +1164,6 @@ export default function MarketplaceDemoPage() {
   // No seeded campaigns or applications — only real data from Firebase
 
   const [marketplaceTab, setMarketplaceTab] = useState<'creators' | 'campaigns' | 'applications' | 'sent' | 'pastDeals'>('creators');
-  const [backendCreators, setBackendCreators] = useState<any[]>([]);
-  const [creatorsLoading, setCreatorsLoading] = useState(false);
   const [hiddenSentDealIds, setHiddenSentDealIds] = useState<Set<number>>(new Set());
   const [showCampaignCreator, setShowCampaignCreator] = useState(false);
   const [newCampaignTitle, setNewCampaignTitle] = useState('');
@@ -1259,7 +1296,7 @@ export default function MarketplaceDemoPage() {
   // Track uploaded deliverables across all deals (for "Uploaded" profile tab)
   type UploadedItem = { id:string; brand:string; dealId:string; format:string; link:string; uploadedAt:string; };
   const [uploadedItems, setUploadedItems] = useState<UploadedItem[]>([]);
-  // Deliverable checklist tracking (per-deliverable status + content links)
+  // Deliverable checklist tracking (per-deliverable status + Instagram links)
   // Deliverable statuses + links — synced from shared deal state for brand to see creator submissions
   const deliverableStatuses: Record<number, 'pending'|'linking'|'uploaded'|'approved'> = (activeDeal?.deliverableStatuses as Record<number, 'pending'|'linking'|'uploaded'|'approved'>) || {};
   const setDeliverableStatuses = (v: Record<number, 'pending'|'linking'|'uploaded'|'approved'> | ((prev: Record<number, 'pending'|'linking'|'uploaded'|'approved'>) => Record<number, 'pending'|'linking'|'uploaded'|'approved'>)) => {
@@ -1659,36 +1696,7 @@ export default function MarketplaceDemoPage() {
     : [];
 
   return (
-    <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', color: C.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', overflowX: 'hidden' }}>
-
-      {/* ── HEADER ──────────────────────────── */}
-      <div style={{ background: C.surface, borderBottom: `1px solid ${C.border}`, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '16px', fontWeight: 700, color: C.text }}>ValueSkins</div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <Link href="/profile/me" style={{ padding: '8px 16px', color: C.text, textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'block' }}>
-            Profile
-          </Link>
-          <Link href="/account/settings" style={{ padding: '8px 16px', color: C.text, textDecoration: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer', display: 'block' }}>
-            Settings
-          </Link>
-          <button
-            onClick={async () => {
-              try {
-                await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-                window.location.href = '/auth/login';
-              } catch (err) {
-                console.error('Logout failed:', err);
-              }
-            }}
-            style={{ padding: '8px 16px', background: C.primary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
-      {/* ── MAIN CONTENT ──────────────────────────── */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+    <div style={{ background: C.bg, minHeight: '100vh', display: 'flex', color: C.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', overflowX: 'hidden' }}>
 
       {/* ── ONBOARDING OVERLAY ──────────────────────────── */}
 
@@ -1990,7 +1998,7 @@ export default function MarketplaceDemoPage() {
 
 
       {/* Main Content */}
-      <div style={{ display: activeView === 'events' ? 'none' : 'flex', flex: 1, justifyContent: 'center', overflowX: 'hidden', paddingBottom: '60px' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', overflowX: 'hidden', paddingBottom: '60px' }}>
         <div style={{ width: '100%', maxWidth: (activeView === 'store' || activeView === 'mim' || activeView === 'admin') ? '900px' : '600px', borderLeft: isMobile ? 'none' : `1px solid ${C.border}`, borderRight: isMobile ? 'none' : `1px solid ${C.border}`, background: C.bg, overflowX: 'hidden' }}>
 
           {/* ── PROFILE VIEW ──────────────────────────────────── */}
@@ -2040,7 +2048,7 @@ export default function MarketplaceDemoPage() {
                 onMouseUp={() => setDraggingSkin(null)}
                 onMouseLeave={() => setDraggingSkin(null)}
               >
-                {/* Desktop layout: large avatar left, info right */}
+                {/* Instagram desktop layout: large avatar left, info right */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? '16px' : '32px', marginBottom: '20px' }}>
                   {/* Avatar */}
                   <div style={{ flexShrink: 0 }}>
@@ -2525,7 +2533,7 @@ export default function MarketplaceDemoPage() {
                   <div style={{ padding: '40px 16px' }}>
                     <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                       <h2 style={{ fontSize: '20px', fontWeight: 700, color: C.text, marginBottom: '6px' }}>Choose your role</h2>
-                      <p style={{ fontSize: '14px', color: C.textSecondary }}>Start trading collaborations and deals</p>
+                      <p style={{ fontSize: '14px', color: C.textSecondary }}>Choose your Instagram-side workflow</p>
                     </div>
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                       {([
@@ -2560,7 +2568,7 @@ export default function MarketplaceDemoPage() {
               {/* Layer 3a: Creator Marketplace */}
               {hasValueSkin && marketplaceRole === 'creator' && (
                 <>
-                  {/* Marketplace header */}
+                  {/* Marketplace header — Instagram style */}
                   <div style={{ padding: '12px 16px 0', position: 'sticky', top: 0, background: C.bg, zIndex: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                       <span style={{ fontSize: '22px', fontWeight: 700, color: C.text }}>Marketplace</span>
@@ -2668,7 +2676,7 @@ export default function MarketplaceDemoPage() {
                       </div>
                     )}
 
-                    {/* Feature 3: Market rate intelligence panel (based on historical creator collaboration rates) */}
+                    {/* Feature 3: Market rate intelligence panel (Meta data source: Instagram Ads Manager historical rates for creator category) */}
                     {selectedMarketplaceSkin && creatorMarketplaceTab === 'opportunities' && (() => {
                       const rate = getMarketRate(selectedMarketplaceSkin);
                       return (
@@ -3648,7 +3656,7 @@ export default function MarketplaceDemoPage() {
                                     }
                                   })()}
 
-                                  {(dealRoomPhase === 'chatroom' || dealRoomPhase === 'accepted' || dealRoomPhase === 'pending' || dealRoomPhase === 'counter' || dealRoomPhase === 'last_offer' || dealRoomPhase === 'softhold' || dealRoomPhase === 'checklist') && (
+                                  {(dealRoomPhase === 'chatroom' || dealRoomPhase === 'accepted' || dealRoomPhase === 'pending' || dealRoomPhase === 'counter' || dealRoomPhase === 'last_offer') && (
                                     <>
                                       {/* Chat + Sidebar layout */}
                                       <div style={{ display: 'flex', gap: '8px', minHeight: '340px' }}>
@@ -3772,46 +3780,6 @@ export default function MarketplaceDemoPage() {
                                               </div>
                                             ))}
                                           </div>
-
-                                          {/* Phase-specific extensions */}
-                                          {dealRoomPhase === 'accepted' && activeDeal && (
-                                            <>
-                                              <ContractView dealId={activeDealKey || ''} />
-                                              <TimelineView
-                                                dealId={activeDealKey || ''}
-                                                timeline={[
-                                                  { date: new Date(Date.now() + 7*24*60*60*1000).toISOString(), event: 'Shoot day', type: 'milestone', completed: false, reminder_sent: false, details: { time: '10:00 AM', location: 'Location TBD' } },
-                                                  { date: new Date(Date.now() + 14*24*60*60*1000).toISOString(), event: 'Submit deliverables', type: 'deliverable', completed: false, reminder_sent: false },
-                                                  { date: new Date(Date.now() + 21*24*60*60*1000).toISOString(), event: 'Brand approval deadline', type: 'approval', completed: false, reminder_sent: false },
-                                                  { date: new Date(Date.now() + 28*24*60*60*1000).toISOString(), event: 'Post content (embargo date)', type: 'posting', completed: false, reminder_sent: false },
-                                                  { date: new Date(Date.now() + 35*24*60*60*1000).toISOString(), event: 'Payment due', type: 'payment', completed: false, reminder_sent: false },
-                                                ]}
-                                              />
-                                            </>
-                                          )}
-
-                                          {dealRoomPhase === 'softhold' && activeDeal && (
-                                            <DeliverablesView
-                                              dealId={activeDealKey || ''}
-                                              deliverables={[
-                                                { id: 'del_0', name: 'Main Reel', description: 'Promotional video', deadline: new Date(Date.now() + 14*24*60*60*1000).toISOString(), status: 'pending', revisions_remaining: 3 },
-                                                { id: 'del_1', name: 'Carousel Post', description: 'Multi-slide carousel (5-10 slides)', deadline: new Date(Date.now() + 14*24*60*60*1000).toISOString(), status: 'pending', revisions_remaining: 3 },
-                                              ]}
-                                            />
-                                          )}
-
-                                          {dealRoomPhase === 'checklist' && activeDeal && (
-                                            <InvoiceView
-                                              dealId={activeDealKey || ''}
-                                              invoice={{
-                                                id: `inv_${activeDealKey}`,
-                                                amount: parseInt((activeDeal.offerAmount || dealOfferAmount || '0').replace(/[^0-9]/g, '') || '0'),
-                                                due_date: new Date(Date.now() + 7*24*60*60*1000).toISOString(),
-                                                status: 'sent',
-                                                days_overdue: 0,
-                                              }}
-                                            />
-                                          )}
 
                                           {/* Counter-offer — hidden once formal offer sent */}
                                           {!activeDeal?.formalOfferSentByCreator && <div style={{ background: C.bg, borderRadius: '8px', border: `1px solid ${C.border}`, padding: '8px' }}>
@@ -4145,7 +4113,7 @@ export default function MarketplaceDemoPage() {
 
                                         // Deliverables phase (when escrowFunded && lifecycle==='deliverables')
                                         if (creatorDealLifecycle === 'deliverables') {
-                                          const oppDeliverables = opp.deliverables?.length ? opp.deliverables : [{ format: 'Video Content', count: 1 }];
+                                          const oppDeliverables = opp.deliverables?.length ? opp.deliverables : [{ format: 'Instagram Reel', count: 1 }];
                                           // Expand deliverables into individual slots: [{format:'Reel',count:2}] → [{format:'Reel',label:'Reel 1 of 2'},{format:'Reel',label:'Reel 2 of 2'}]
                                           const expandedSlots: { format: string; label: string }[] = oppDeliverables.flatMap((d: {format:string;count:number}) =>
                                             d.count === 1
@@ -4195,7 +4163,7 @@ export default function MarketplaceDemoPage() {
                                                         <div style={{ flex:1 }}>
                                                           <div style={{ fontSize:'12px', fontWeight:600, color:C.text }}>{d.label}</div>
                                                           <div style={{ fontSize:'10px', color: status === 'approved' ? C.success : status === 'uploaded' ? C.primary : C.textMuted }}>
-                                                            {status === 'approved' ? 'Approved by brand' : status === 'uploaded' ? 'Submitted — awaiting review' : status === 'linking' ? 'Enter your content link below' : 'Not yet submitted'}
+                                                            {status === 'approved' ? 'Approved by brand' : status === 'uploaded' ? 'Submitted — awaiting review' : status === 'linking' ? 'Enter your Instagram link below' : 'Not yet submitted'}
                                                           </div>
                                                         </div>
                                                         {status === 'pending' && (
@@ -4207,7 +4175,7 @@ export default function MarketplaceDemoPage() {
                                                       </div>
                                                       {status === 'linking' && (
                                                         <div style={{ padding:'10px', borderTop:`1px solid ${C.border}`, background:C.bg }}>
-                                                          <div style={{ fontSize:'10px', color:C.textMuted, marginBottom:'6px' }}>Paste the link to your published content</div>
+                                                          <div style={{ fontSize:'10px', color:C.textMuted, marginBottom:'6px' }}>Paste the link to your published Instagram post or reel</div>
                                                           <div style={{ display:'flex', gap:'6px' }}>
                                                             <input
                                                               type="text"
@@ -4251,7 +4219,7 @@ export default function MarketplaceDemoPage() {
                                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={C.textMuted} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6m-3-3v6"/></svg>
                                                           </div>
                                                           <div style={{ flex:1, minWidth:0 }}>
-                                                            <div style={{ fontSize:'10px', fontWeight:700, color:C.textMuted, marginBottom:'2px', textTransform:'uppercase', letterSpacing:'0.4px' }}>{d.format}</div>
+                                                            <div style={{ fontSize:'10px', fontWeight:700, color:C.textMuted, marginBottom:'2px', textTransform:'uppercase', letterSpacing:'0.4px' }}>Instagram {d.format.toLowerCase().includes('reel') ? 'Reel' : 'Post'}</div>
                                                             <a href={link} target="_blank" rel="noopener noreferrer" style={{ fontSize:'10px', color:C.primary, textDecoration:'none', display:'block', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{postId ? `portfolio.valueskins.com/p/${postId}` : link}</a>
                                                             <div style={{ fontSize:'9px', color:C.textMuted, marginTop:'3px' }}>Submitted {new Date().toLocaleDateString('en-US', { month:'short', day:'numeric' })}</div>
                                                           </div>
@@ -4484,7 +4452,7 @@ export default function MarketplaceDemoPage() {
                                             {status === 'content_due' && (
                                               <div style={{ background:'rgba(59,130,246,0.06)', border:`1px solid rgba(59,130,246,0.2)`, borderRadius:'8px', padding:'12px', marginBottom:'12px' }}>
                                                 <div style={{ fontSize:'13px', fontWeight:700, color:C.text, marginBottom:'4px' }}>Create Content</div>
-                                                <div style={{ fontSize:'11px', color:C.textSecondary, marginBottom:'8px' }}>Submit a link to your published content featuring the product</div>
+                                                <div style={{ fontSize:'11px', color:C.textSecondary, marginBottom:'8px' }}>Submit a link to your Instagram post or reel featuring the product</div>
                                                 <input
                                                   type="text"
                                                   value={deliverableLinkInputs[0] || ''}
@@ -4612,7 +4580,7 @@ export default function MarketplaceDemoPage() {
                                             if (pocHandle) {
                                               window.open(`https://portfolio.valueskins.com/${pocHandle}`, '_blank');
                                             }
-                                            setPurchaseToast(`Opening ${activeDeal.poc?.name || 'POC'}'s profile`);
+                                            setPurchaseToast(`Opening ${activeDeal.poc?.name || 'POC'} on Instagram`);
                                             setTimeout(() => setPurchaseToast(null), 2000);
                                           }}
                                           style={{ background: C.primary, border: 'none', borderRadius: '6px', padding: '5px 12px', color: '#fff', fontSize: '10px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
@@ -5698,7 +5666,9 @@ export default function MarketplaceDemoPage() {
                       const q = brandSearchQuery.trim().toLowerCase();
                       // Show creators with valueSkin matching the active brand skin
                       // Preserve original index (_origIdx) so deal room lookup works after filtering
-                      const creatorsForSkin = backendCreators.length > 0 ? backendCreators : [];
+                      const creatorsForSkin = activeBrandSkin
+                        ? BRAND_MARKETPLACE_CREATORS.map((c, idx) => ({ ...c, valueSkin: activeBrandSkin, _origIdx: idx }))
+                        : [] as (typeof BRAND_MARKETPLACE_CREATORS[0] & { _origIdx: number })[];
                       let results = creatorsForSkin.filter(c =>
                         (!filterBarterOnly || c.willingToBarter) &&
                         (!filterAudienceAge || c.audienceAgeRange === filterAudienceAge) &&
@@ -6896,7 +6866,7 @@ export default function MarketplaceDemoPage() {
                                             if (pocHandle) {
                                               window.open(`https://portfolio.valueskins.com/${pocHandle}`, '_blank');
                                             }
-                                            setPurchaseToast(`Opening ${brandDeal.poc?.name || 'POC'}'s profile`);
+                                            setPurchaseToast(`Opening ${brandDeal.poc?.name || 'POC'} on Instagram`);
                                             setTimeout(() => setPurchaseToast(null), 2000);
                                           }}
                                           style={{ background: C.primary, border: 'none', borderRadius: '6px', padding: '5px 12px', color: '#fff', fontSize: '10px', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
@@ -8453,7 +8423,7 @@ export default function MarketplaceDemoPage() {
                 {exploreTab === 'creators' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px' }}>Top creators by engagement</div>
-                    {backendCreators.map((c, i) => {
+                    {BRAND_MARKETPLACE_CREATORS.map((c, i) => {
                       return (
                         <div key={i} onClick={() => setPreviewCreator(c)}
                           style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: C.card, borderRadius: '10px', border: `1px solid ${C.border}`, cursor: 'pointer', transition: 'border-color 0.15s' }}
@@ -9652,13 +9622,8 @@ export default function MarketplaceDemoPage() {
         />
       )}
 
-      {/* ── EVENTS VIEW ──────────────────────────── */}
-      {activeView === 'events' && (
-        <EventManagementPage />
-      )}
-
       {/* Bottom Tab Bar */}
-      {activeView !== 'events' && (
+      {(
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
           background: C.surface, borderTop: `1px solid ${C.border}`,
@@ -9693,7 +9658,6 @@ export default function MarketplaceDemoPage() {
           ))}
         </div>
       )}
-      </div>
     </div>
   );
 }
