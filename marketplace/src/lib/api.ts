@@ -9,10 +9,10 @@
 
 import type { DealStatus, DeliverableType, OpportunityStatus } from './deals';
 
-// In browser: proxy through Next.js API route to avoid CORS issues.
-// On server (SSR): call backend directly.
+// In browser: use Render backend directly (CORS configured)
+// On server (SSR): use BACKEND_URL env var
 const API_BASE_URL = typeof window !== 'undefined'
-  ? '/api/backend'
+  ? (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080')
   : (process.env.BACKEND_URL || 'http://localhost:8080');
 
 interface ApiResponse<T> {
