@@ -2025,7 +2025,7 @@ export default function MarketplaceDemoPage() {
                 </div>
               )}
 
-              {/* Profile Info */}
+              {/* ValueSkins Profile Section */}
               <div
                 ref={profileAreaRef}
                 style={{ padding: isMobile ? '12px' : '20px 20px 0', position: 'relative' }}
@@ -2040,62 +2040,78 @@ export default function MarketplaceDemoPage() {
                 onMouseUp={() => setDraggingSkin(null)}
                 onMouseLeave={() => setDraggingSkin(null)}
               >
-                {/* Desktop layout: large avatar left, info right */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? '16px' : '32px', marginBottom: '20px' }}>
-                  {/* Avatar */}
-                  <div style={{ flexShrink: 0 }}>
-                    <ProfilePhotoWithLongPress
-                      showValueskinAvatar={valueskinAvatarEnabled}
-                      level={currentLevel}
-                      valueSkins={valueSkins}
-                      avatarUrl="https://api.dicebear.com/7.x/avataaars/svg?seed=Saketh"
-                      displayName="Saketh Velamuri"
-                      size={isMobile ? 77 : 150}
-                      onValueSkinsChange={setValueSkins}
-                    />
+                {/* ValueSkins Profile Card */}
+                <div style={{
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '20px'
+                }}>
+                  {/* Avatar + Profile Info */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', marginBottom: '20px' }}>
+                    {/* Avatar */}
+                    <div style={{ flexShrink: 0 }}>
+                      <ProfilePhotoWithLongPress
+                        showValueskinAvatar={valueskinAvatarEnabled}
+                        level={currentLevel}
+                        valueSkins={valueSkins}
+                        avatarUrl="https://api.dicebear.com/7.x/avataaars/svg?seed=Saketh"
+                        displayName="Saketh Velamuri"
+                        size={isMobile ? 64 : 96}
+                        onValueSkinsChange={setValueSkins}
+                      />
+                    </div>
+
+                    {/* Profile Text Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, marginBottom: '2px' }}>Saketh Velamuri</div>
+                        <div style={{ fontSize: '14px', color: C.textSecondary }}>@saketh_eth</div>
+                      </div>
+
+                      {/* Profile Bio */}
+                      {editingProfile ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)}
+                            placeholder="Your name"
+                            style={{ padding: '8px 10px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontSize: '13px', fontWeight: 600 }} />
+                          <textarea value={profileBio} onChange={e => setProfileBio(e.target.value)} rows={2}
+                            placeholder="Tell your story..."
+                            style={{ padding: '8px 10px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontSize: '12px', fontFamily: 'inherit', resize: 'none', lineHeight: 1.5 }} />
+                          <button onClick={() => setEditingProfile(false)}
+                            style={{ alignSelf: 'flex-start', padding: '6px 14px', borderRadius: '6px', border: 'none', background: C.primary, color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: '13px', color: C.text, lineHeight: '1.5', maxWidth: '320px' }}>{profileBio}</div>
+                          <button
+                            onClick={() => setEditingProfile(true)}
+                            style={{ marginTop: '8px', fontSize: '12px', color: C.primary, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+                          >
+                            Edit Profile
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Right side info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {/* Username row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: 300, color: C.text, letterSpacing: '-0.3px' }}>sakethvelamuri</span>
-                      <button
-                        onClick={handleFollow}
-                        style={{ background: isFollowing ? C.card : C.primary, border: `1px solid ${isFollowing ? C.border : C.primary}`, borderRadius: '8px', color: isFollowing ? C.text : '#fff', padding: '7px 16px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                      >
-                        {isFollowing ? 'Following' : 'Follow'}
-                      </button>
-                      <button style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: '8px', color: C.text, padding: '7px 16px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>Message</button>
+                  {/* Stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', paddingTop: '16px', borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>12</div>
+                      <div style={{ fontSize: '12px', color: C.textSecondary }}>Deals</div>
                     </div>
-
-                    {/* Stats row */}
-                    <div style={{ display: 'flex', gap: '32px', marginBottom: '16px', fontSize: '15px' }}>
-                      <div><strong style={{ color: C.text }}>47</strong> <span style={{ color: C.textSecondary }}>posts</span></div>
-                      <button onClick={() => setShowMetricsModal(true)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '15px', color: C.text }}>
-                        <strong>{(metrics.followers / 1000).toFixed(0)}K</strong> <span style={{ color: C.textSecondary }}>followers</span>
-                      </button>
-                      <div><strong style={{ color: C.text }}>450</strong> <span style={{ color: C.textSecondary }}>following</span></div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>4.8</div>
+                      <div style={{ fontSize: '12px', color: C.textSecondary }}>Rating</div>
                     </div>
-
-                    {/* Bio */}
-                    {editingProfile ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)}
-                          style={{ padding: '8px 10px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: '14px', fontWeight: 600, maxWidth: '280px' }} />
-                        <textarea value={profileBio} onChange={e => setProfileBio(e.target.value)} rows={3}
-                          style={{ padding: '8px 10px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: '13px', fontFamily: 'inherit', resize: 'none', lineHeight: 1.5, maxWidth: '280px' }} />
-                        <button onClick={() => setEditingProfile(false)}
-                          style={{ alignSelf: 'flex-start', padding: '6px 16px', borderRadius: '6px', border: 'none', background: C.primary, color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                          Save
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: C.text, marginBottom: '2px' }}>{profileName}</div>
-                        <div style={{ fontSize: '13px', color: C.text, lineHeight: '1.6', whiteSpace: 'pre-line' }}>{profileBio}</div>
-                      </div>
-                    )}
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>$42K</div>
+                      <div style={{ fontSize: '12px', color: C.textSecondary }}>Earned</div>
+                    </div>
                   </div>
                 </div>
 
@@ -6996,12 +7012,14 @@ export default function MarketplaceDemoPage() {
                             </div>
                           ) : null;
                         })()}
-                        {campaigns.length === 0 ? (
-                          <div style={{ textAlign:'center', padding:'24px 20px', color:C.textMuted }}>
-                            <div style={{ fontSize:'13px', marginBottom:'4px' }}>No campaigns yet</div>
-                            <div style={{ fontSize:'11px' }}>Create a campaign to start receiving creator applications.</div>
-                          </div>
-                        ) : campaigns.map((c,i) => (
+                        {(() => {
+                          const activeCampaigns = liveCampaigns.filter(c => c.status !== 'expired');
+                          return activeCampaigns.length === 0 ? (
+                            <div style={{ textAlign:'center', padding:'24px 20px', color:C.textMuted }}>
+                              <div style={{ fontSize:'13px', marginBottom:'4px' }}>No campaigns yet</div>
+                              <div style={{ fontSize:'11px' }}>Create a campaign to start receiving creator applications.</div>
+                            </div>
+                          ) : activeCampaigns.map((c,i) => (
                           <div key={i} style={{ background:C.card, borderRadius:'12px', padding:'14px', marginBottom:'10px', border:`1px solid ${C.border}` }}>
                             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px', flexWrap:'wrap', gap:'4px' }}>
                               <span style={{ fontSize:'13px', fontWeight:700, color:C.text }}>{c.title}</span>
@@ -7038,9 +7056,68 @@ export default function MarketplaceDemoPage() {
                               <span style={{ fontSize:'10px', fontWeight:700, color:c.status==='expired'?C.textMuted:c.status==='open'?C.success:'#888', background:c.status==='expired'?'rgba(239,68,68,0.1)':c.status==='open'?C.surfaceAlt:'rgba(136,136,136,0.1)', padding:'2px 8px', borderRadius:'6px', textTransform:'uppercase' }}>{c.status}</span>
                             </div>
                           </div>
-                        ))}
+                        ))
+                        })()}
                       </>)}
                     </div>
+
+                    {/* Past Campaigns — expired campaigns */}
+                    {(() => {
+                      const expiredCampaigns = liveCampaigns.filter(c => c.status === 'expired');
+                      return expiredCampaigns.length > 0 ? (
+                        <div style={{ marginTop:'24px', paddingTop:'20px', borderTop:`1px solid ${C.border}` }}>
+                          <button
+                            onClick={() => setCampaignsSectionOpen(v => !v)}
+                            style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'center', background:'none', border:'none', padding:'0 0 14px', cursor:'pointer' }}
+                          >
+                            <span style={{ fontSize:'12px', fontWeight:700, color:C.text, textTransform:'uppercase', letterSpacing:'0.5px', display:'flex', alignItems:'center', gap:'6px' }}>
+                              Past Campaigns
+                              {expiredCampaigns.length > 0 && <span style={{ fontSize:'10px', background:C.textMuted, color:'#fff', padding:'1px 5px', borderRadius:'8px' }}>{expiredCampaigns.length}</span>}
+                            </span>
+                          </button>
+                          <div style={{ display:'flex', flexDirection:'column', gap:'10px', marginTop:'10px' }}>
+                            {expiredCampaigns.map((c,i) => (
+                              <div key={i} style={{ background:C.card, borderRadius:'12px', padding:'14px', marginBottom:'10px', border:`1px solid ${C.border}`, opacity:0.7 }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'6px', flexWrap:'wrap', gap:'4px' }}>
+                                  <span style={{ fontSize:'13px', fontWeight:700, color:C.text }}>{c.title}</span>
+                                  <span style={{ fontSize:'12px', fontWeight:700, color:C.success }}>${parseInt(c.budget||'0').toLocaleString()}</span>
+                                </div>
+                                {c.brandName && <div style={{ fontSize:'11px', color:C.textSecondary, marginBottom:'4px' }}>by {c.brandName}</div>}
+                                <div style={{ fontSize:'11px', color:C.textSecondary, marginBottom:'8px', lineHeight:1.4 }}>{c.description}</div>
+                                <div style={{ display:'flex', gap:'5px', flexWrap:'wrap', marginBottom:'6px' }}>
+                                  {c.requiredProfessions.map(p => <span key={p} style={{ fontSize:'10px', fontWeight:600, color:C.primary, background:`${C.primary}12`, padding:'2px 7px', borderRadius:'6px', border:`1px solid ${C.primary}30` }}>{p}</span>)}
+                                </div>
+                                <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', fontSize:'10px', color:C.textMuted, marginBottom: c.nonNegotiables?.length ? '6px':'8px' }}>
+                                  <span>Level: L{c.minLevel||1}{(c.maxLevel && c.maxLevel !== c.minLevel) ? `–L${c.maxLevel}` : ''}</span>
+                                  {c.location && <span>{c.location}</span>}
+                                  {c.deliverables && <span>{c.deliverables}</span>}
+                                </div>
+                                {c.nonNegotiables && c.nonNegotiables.length > 0 && (
+                                  <div style={{ display:'flex', gap:'5px', flexWrap:'wrap', marginBottom:'8px' }}>
+                                    {c.nonNegotiables.map(n=><span key={n} style={{ fontSize:'10px', color:C.textMuted, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', padding:'2px 7px', borderRadius:'6px' }}>{n}</span>)}
+                                  </div>
+                                )}
+                                {(c.creatorCount || c.escrowPool) && (
+                                  <div style={{ display:'flex', gap:'8px', marginBottom:'6px', flexWrap:'wrap' }}>
+                                    {c.creatorCount && <span style={{ fontSize:'10px', color:C.textSecondary, background:C.surfaceAlt, padding:'2px 8px', borderRadius:'6px' }}>Hired {c.creatorCount} creator{c.creatorCount!==1?'s':''}</span>}
+                                    {c.escrowPool && (
+                                      <span style={{ fontSize:'10px', fontWeight:700, color: c.escrowFunded ? C.success : C.warning, background: c.escrowFunded ? 'rgba(0,212,106,0.08)' : 'rgba(255,171,0,0.08)', border: `1px solid ${c.escrowFunded ? 'rgba(0,212,106,0.25)' : 'rgba(255,171,0,0.25)'}`, padding:'2px 8px', borderRadius:'6px', display:'flex', alignItems:'center', gap:'4px' }}>
+                                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        {c.escrowFunded ? `$${c.escrowPool.toLocaleString()} in escrow` : `$${c.escrowPool.toLocaleString()} escrow pending`}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                                  <span style={{ fontSize:'10px', color:C.textMuted }}>{c.deadline?`Expired ${c.deadline}`:''}</span>
+                                  <span style={{ fontSize:'10px', fontWeight:700, color:C.textMuted, background:'rgba(239,68,68,0.1)', padding:'2px 8px', borderRadius:'6px', textTransform:'uppercase' }}>Expired</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })()}
 
                     {/* Applications Received */}
                     <div style={{ marginTop:'16px' }}>

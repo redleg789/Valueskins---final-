@@ -62,20 +62,6 @@ export default function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
 
           <DashboardCard
-            title="Your ValueSkin"
-            desc="View your unique ValueSkin ID"
-            link="/valueskin/my-skin"
-            color="#f59e0b"
-          />
-
-          <DashboardCard
-            title="ValuSkins Store"
-            desc="Unlock profession-based skins"
-            link="/valueskins/store"
-            color="#06b6d4"
-          />
-
-          <DashboardCard
             title="Marketplace"
             desc="Discover brands, creators & deals"
             link="/demo/marketplace"

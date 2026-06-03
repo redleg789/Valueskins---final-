@@ -380,7 +380,6 @@ dependencies = [
  "hmac",
  "identity_service",
  "linkedin_service",
- "marketplace_service",
  "matching_service",
  "moderation_service",
  "notification_service",

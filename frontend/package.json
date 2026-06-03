@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "node scripts/generate-sticker-manifest.js",
-    "dev": "next dev -p 3001",
+    "dev": "next dev -p 3000",
     "prebuild": "node scripts/generate-sticker-manifest.js",
     "build": "next build",
     "start": "next start",
