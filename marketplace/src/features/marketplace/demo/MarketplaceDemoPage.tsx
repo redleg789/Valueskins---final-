@@ -2001,7 +2001,7 @@ export default function MarketplaceDemoPage() {
                 height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 position: 'sticky', top: 0, background: C.bg, zIndex: 10, padding: '0 16px',
               }}>
-                <span style={{ fontSize: '22px', fontWeight: 700, color: C.text }}>saketh_eth</span>
+                <span style={{ fontSize: '22px', fontWeight: 700, color: C.text }}>{profileName || 'Your Profile'}</span>
                 <button
                   onClick={() => setShowAvatarSettings(!showAvatarSettings)}
                   style={{ background: 'none', border: 'none', fontSize: '13px', color: C.textSecondary, cursor: 'pointer' }}
@@ -2056,8 +2056,8 @@ export default function MarketplaceDemoPage() {
                         showValueskinAvatar={valueskinAvatarEnabled}
                         level={currentLevel}
                         valueSkins={valueSkins}
-                        avatarUrl="https://api.dicebear.com/7.x/avataaars/svg?seed=Saketh"
-                        displayName="Saketh Velamuri"
+                        avatarUrl={`https://api.dicebear.com/7.x/avataaars/svg?seed=${(profileName || 'User').replace(/\s+/g, '')}`}
+                        displayName={profileName || 'Your Name'}
                         size={isMobile ? 64 : 96}
                         onValueSkinsChange={setValueSkins}
                       />
@@ -2066,8 +2066,8 @@ export default function MarketplaceDemoPage() {
                     {/* Profile Text Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, marginBottom: '2px' }}>Saketh Velamuri</div>
-                        <div style={{ fontSize: '14px', color: C.textSecondary }}>@saketh_eth</div>
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, marginBottom: '2px' }}>{profileName || 'Your Name'}</div>
+                        <div style={{ fontSize: '14px', color: C.textSecondary }}>@{(profileName || 'user').toLowerCase().replace(/\s+/g, '_')}</div>
                       </div>
 
                       {/* Profile Bio */}
@@ -2101,15 +2101,15 @@ export default function MarketplaceDemoPage() {
                   {/* Stats */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', paddingTop: '16px', borderTop: `1px solid ${C.border}` }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>12</div>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>{completedDeals.length}</div>
                       <div style={{ fontSize: '12px', color: C.textSecondary }}>Deals</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>4.8</div>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>{(metrics.brandRating || 0).toFixed(1)}</div>
                       <div style={{ fontSize: '12px', color: C.textSecondary }}>Rating</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>$42K</div>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>${(completedDeals.reduce((sum, d) => sum + d.amount, 0) / 1000).toFixed(0)}K</div>
                       <div style={{ fontSize: '12px', color: C.textSecondary }}>Earned</div>
                     </div>
                   </div>
