@@ -1371,6 +1371,30 @@ export default function MarketplaceDemoPage() {
       skinXP, brandProfileSelections, creatorEnergy, metrics, skinsLoaded, skinPitchTexts, skinPitchVideos,
       skinPositions]);
 
+  // Fetch profile stats from API instead of using hardcoded values
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/profile/stats", { credentials: "include" });
+        if (response.ok) {
+          const statsData = await response.json();
+          setMetrics(prev => ({
+            followers: statsData.followers || prev.followers,
+            engagement: statsData.engagement || prev.engagement,
+            dealsCompleted: statsData.dealsCompleted || prev.dealsCompleted,
+            avgDealValue: statsData.avgDealValue || prev.avgDealValue,
+            onTimeRate: statsData.onTimeRate || prev.onTimeRate,
+            brandRating: statsData.avgRating || prev.brandRating,
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile stats:", err);
+      }
+    };
+    fetchStats();
+  }, []);
+
+
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
     setMetrics(prev => ({ ...prev, followers: prev.followers + (isFollowing ? -1 : 1) }));
