@@ -1395,6 +1395,32 @@ export default function MarketplaceDemoPage() {
   }, []);
 
 
+
+  // Fetch ValueSkins from API based on user role
+  useEffect(() => {
+    const fetchValueSkins = async () => {
+      try {
+        const endpoint = marketplaceRole === "brand" ? "/api/brand-valueskins" : "/api/valueskins";
+        const response = await fetch(endpoint, { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          if (marketplaceRole === "brand") {
+            setBrandValueSkins(data.skins.map((s: any) => s.category));
+          } else {
+            const skinsMap: Record<string, any> = {};
+            data.skins.forEach((s: any) => {
+              skinsMap[s.slot] = { profession: s.profession, aboutMe: s.aboutMe || "" };
+            });
+            setValueSkins(skinsMap);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch ValueSkins:", err);
+      }
+    };
+    if (skinsLoaded) { fetchValueSkins(); }
+  }, [marketplaceRole, skinsLoaded]);
+
   const handleFollow = () => {
     setIsFollowing(!isFollowing);
     setMetrics(prev => ({ ...prev, followers: prev.followers + (isFollowing ? -1 : 1) }));
