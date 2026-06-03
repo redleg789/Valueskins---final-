@@ -26,6 +26,8 @@ import {
 } from '@/features/valueskins/core/identity/AvatarOptions';
 import { STICKER_MANIFEST } from '@/features/valueskins/core/stickers/sticker-manifest';
 import { TimelineView, DeliverablesView, InvoiceView, ContractView } from '@/components/DealPhaseExtensions';
+import { ValueSkinEditModal } from '@/components/ValueSkinEditModal';
+import { useDefaultValueSkin, useUpdateValueSkin } from '@/lib/valueskins/hooks';
 
 /** Get sticker image path for any profession — checks PROFESSION_BADGES first, then auto-generated manifest */
 function getStickerForProfession(profession: string): string | undefined {
@@ -350,6 +352,7 @@ export default function MarketplaceDemoPage() {
   const [valueskinAvatarEnabled, setValueskinAvatarEnabled] = useState(false);
   const [skinPositions, setSkinPositions] = useState<Record<string, {x: number, y: number}>>({});
   const [draggingSkin, setDraggingSkin] = useState<string | null>(null);
+  const [hoveringSticker, setHoveringSticker] = useState<string | null>(null);
   const draggingOffset = useRef<{x: number, y: number}>({x: 0, y: 0});
   const dragMoved = useRef(false);
   const profileAreaRef = useRef<HTMLDivElement>(null);
@@ -418,6 +421,11 @@ export default function MarketplaceDemoPage() {
   const [showReputationModal, setShowReputationModal] = useState(false);
   const [showStoreModal, setShowStoreModal] = useState(false);
   const [storeCategory, setStoreCategory] = useState<string | null>(null);
+
+  // ValueSkin edit modal state
+  const [showEditValueSkinModal, setShowEditValueSkinModal] = useState(false);
+  const [editingValueSkinId, setEditingValueSkinId] = useState<string | null>(null);
+  const [editingValueSkinData, setEditingValueSkinData] = useState<any>(null);
 
   // Marketplace role & gate
   const [marketplaceRole, setMarketplaceRole] = useState<'none' | 'creator' | 'brand'>('none');
@@ -507,6 +515,43 @@ export default function MarketplaceDemoPage() {
       setSelectedMarketplaceSkin(null);
     }
   }, []);
+
+  // ValueSkin edit handlers
+  const { update: updateValueSkin, loading: updateLoading } = useUpdateValueSkin(editingValueSkinId || '');
+
+  const handleOpenEditModal = useCallback((valueSkinId: string, data: any) => {
+    setEditingValueSkinId(valueSkinId);
+    setEditingValueSkinData(data);
+    setShowEditValueSkinModal(true);
+  }, []);
+
+  const handleSaveEditValueSkin = useCallback(
+    async (updates: any) => {
+      if (!editingValueSkinId) return;
+      try {
+        await updateValueSkin(updates);
+        // Update local state
+        setValueSkins((prev) => {
+          const updated = { ...prev };
+          for (const [key, skin] of Object.entries(updated)) {
+            if (skin?.profession === editingValueSkinData.name) {
+              updated[key] = {
+                ...skin,
+                profession: updates.profession || skin.profession,
+              };
+            }
+          }
+          return updated;
+        });
+        setShowEditValueSkinModal(false);
+        setEditingValueSkinId(null);
+      } catch (err) {
+        console.error('Failed to save ValueSkin:', err);
+        throw err;
+      }
+    },
+    [editingValueSkinId, editingValueSkinData, updateValueSkin]
+  );
 
   // Negotiation state — tracks which opportunity/creator has opened negotiation
   const [negotiatingOpp, setNegotiatingOpp] = useState<number | null>(null);
@@ -1882,6 +1927,17 @@ export default function MarketplaceDemoPage() {
         </div>
       )}
 
+      {/* ValueSkin Edit Modal */}
+      <ValueSkinEditModal
+        isOpen={showEditValueSkinModal}
+        onClose={() => setShowEditValueSkinModal(false)}
+        valueSkinId={editingValueSkinId || ''}
+        currentData={editingValueSkinData || { name: '', description: '', pitch: '', video: '' }}
+        onSave={handleSaveEditValueSkin}
+        isLoading={updateLoading}
+        userRole={marketplaceRole === 'brand' ? 'brand' : 'creator'}
+      />
+
       {/* Ask Modal — full brand brief */}
       {askModalOpp && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }} onClick={() => setAskModalOpp(null)}>
@@ -2170,6 +2226,7 @@ export default function MarketplaceDemoPage() {
                   const badge = PROFESSION_BADGES[profession];
                   const pos = skinPositions[profession] ?? { x: 180 + idx * 40, y: 12 };
                   const isDragging = draggingSkin === profession;
+
                   return (
                     <div
                       key={profession}
@@ -2187,6 +2244,8 @@ export default function MarketplaceDemoPage() {
                         e.stopPropagation();
                         setShowSkinShowcaseModal(profession);
                       }}
+                      onMouseEnter={() => setHoveringSticker(profession)}
+                      onMouseLeave={() => setHoveringSticker(null)}
                       style={{
                         position: 'absolute',
                         left: pos.x,
@@ -2197,9 +2256,46 @@ export default function MarketplaceDemoPage() {
                         filter: isDragging ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' : 'none',
                       }}
                     >
-                      <span style={{ fontSize: '22px', lineHeight: 1, pointerEvents: 'none', display: 'block' }}>
-                        {badge?.emoji ?? badge?.abbreviation ?? profession.slice(0, 3).toUpperCase()}
-                      </span>
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <span style={{ fontSize: '22px', lineHeight: 1, pointerEvents: 'none', display: 'block' }}>
+                          {badge?.emoji ?? badge?.abbreviation ?? profession.slice(0, 3).toUpperCase()}
+                        </span>
+
+                        {/* Edit button on hover (only show if on own profile) */}
+                        {hoveringSticker === profession && marketplaceRole === 'creator' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(`default_${profession}`, {
+                                name: profession,
+                                description: skinPitchTexts[profession] || '',
+                                pitch: creatorPitchText || '',
+                                video: creatorPitchVideoUrl || '',
+                              });
+                            }}
+                            style={{
+                              position: 'absolute',
+                              bottom: '-4px',
+                              right: '-4px',
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: C.primary,
+                              color: '#fff',
+                              border: 'none',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 20,
+                            }}
+                            title="Edit ValueSkin"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

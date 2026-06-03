@@ -1,60 +1,128 @@
-// ValueSkins Layer — Separate from marketplace core
-// Updated independently without breaking marketplace
-// Handles: credentials, stickers, verification, profiles
+import { useState, useCallback } from 'react';
 
-import { useState, useEffect } from 'react';
+export interface DefaultValueSkin {
+  id: string;
+  name: string;
+  description: string;
+  pitch: string;
+  video: string;
+  xp: number;
+  level: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
 
-export const useValueSkinsCredentials = (userId: string | null, token: string | null) => {
-  const [credentials, setCredentials] = useState<any[]>([]);
+/**
+ * Hook to fetch a user's default ValueSkin (public data)
+ */
+export function useDefaultValueSkin(userId: string | null) {
+  const [data, setData] = useState<DefaultValueSkin | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!userId || !token) return;
+  const fetch = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
+    setError(null);
 
-    // Fetch from ValueSkins backend
-    fetch(`http://localhost:8000/api/v1/creators/${userId}/credentials`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => {
-        setCredentials(d.credentials || []);
-        localStorage.setItem('user_credentials', JSON.stringify(d.credentials || []));
-      })
-      .catch(() => {
-        // Fallback to localStorage
-        const stored = localStorage.getItem('user_credentials');
-        setCredentials(stored ? JSON.parse(stored) : []);
-      })
-      .finally(() => setLoading(false));
-  }, [userId, token]);
+    try {
+      const response = await fetch(`/api/valueskins/get-default?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch default ValueSkin');
+      }
+      const result = await response.json();
+      setData(result.defaultValueSkin);
+    } catch (err: any) {
+      setError(err.message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
-  return { credentials, loading, setCredentials };
-};
+  return { data, loading, error, fetch };
+}
 
-export const useValueSkinsSkins = (userId: string | null, token: string | null) => {
-  const [skins, setSkins] = useState<any[]>([]);
-  const [ownedSkins, setOwnedSkins] = useState<any[]>([]);
+/**
+ * Hook to update a user's ValueSkin (for own profile only)
+ */
+export function useUpdateValueSkin(valueSkinId: string) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!userId || !token) return;
+  const update = useCallback(
+    async (updates: {
+      profession?: string;
+      aboutMe?: string;
+      pitchText?: string;
+      pitchVideo?: string;
+    }) => {
+      setLoading(true);
+      setError(null);
 
-    // Fetch available skins
-    fetch('http://localhost:8000/api/v1/skins', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setSkins(d.skins || []))
-      .catch(() => setSkins([]));
+      try {
+        const response = await fetch(`/api/valueskins/${valueSkinId}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
 
-    // Fetch owned skins
-    fetch(`http://localhost:8000/api/v1/creators/${userId}/skins`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setOwnedSkins(d.owned_skins || []))
-      .catch(() => setOwnedSkins(JSON.parse(localStorage.getItem('owned_skins') || '[]')));
-  }, [userId, token]);
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Failed to update ValueSkin');
+        }
 
-  return { skins, ownedSkins, setSkins, setOwnedSkins };
-};
+        const result = await response.json();
+        return result;
+      } catch (err: any) {
+        const message = err.message || 'Failed to update ValueSkin';
+        setError(message);
+        throw new Error(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [valueSkinId]
+  );
+
+  return { update, loading, error };
+}
+
+/**
+ * Hook to initialize a default ValueSkin on registration
+ */
+export function useInitializeDefaultValueSkin() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const initialize = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/valueskins/initialize-default', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to initialize default ValueSkin');
+      }
+
+      const result = await response.json();
+      return result.defaultValueSkin;
+    } catch (err: any) {
+      const message = err.message || 'Failed to initialize ValueSkin';
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { initialize, loading, error };
+}

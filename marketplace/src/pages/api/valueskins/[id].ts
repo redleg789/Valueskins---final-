@@ -56,25 +56,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PUT') {
       const { profession, xp, level, aboutMe, pitchText, pitchVideo } = req.body;
 
+      // Prepare new values (using provided or existing)
+      const newProfession = profession !== undefined ? profession : skin.profession;
+      const newXp = xp !== undefined ? xp : skin.xp;
+      const newLevel = level !== undefined ? level : skin.level;
+      const newAboutMe = aboutMe !== undefined ? aboutMe : skin.about_me;
+      const newPitchText = pitchText !== undefined ? pitchText : skin.pitch_text;
+      const newPitchVideo = pitchVideo !== undefined ? pitchVideo : skin.pitch_video;
+
+      // Track changes for audit log
+      const changedFields: string[] = [];
+      if (profession !== undefined && profession !== skin.profession) changedFields.push('profession');
+      if (xp !== undefined && xp !== skin.xp) changedFields.push('xp');
+      if (level !== undefined && level !== skin.level) changedFields.push('level');
+      if (aboutMe !== undefined && aboutMe !== skin.about_me) changedFields.push('about_me');
+      if (pitchText !== undefined && pitchText !== skin.pitch_text) changedFields.push('pitch_text');
+      if (pitchVideo !== undefined && pitchVideo !== skin.pitch_video) changedFields.push('pitch_video');
+
+      // Update ValueSkin
       const updateResult = await query(
         `UPDATE user_valueskins
          SET profession = $1, xp = $2, level = $3, about_me = $4, pitch_text = $5, pitch_video = $6, updated_at = NOW()
          WHERE id = $7
          RETURNING *`,
-        [
-          profession || skin.profession,
-          xp !== undefined ? xp : skin.xp,
-          level !== undefined ? level : skin.level,
-          aboutMe !== undefined ? aboutMe : skin.about_me,
-          pitchText !== undefined ? pitchText : skin.pitch_text,
-          pitchVideo !== undefined ? pitchVideo : skin.pitch_video,
-          id,
-        ]
+        [newProfession, newXp, newLevel, newAboutMe, newPitchText, newPitchVideo, id]
       );
 
       const updated = updateResult.rows[0];
 
+      // Log to audit trail if changes were made
+      if (changedFields.length > 0) {
+        const oldValues = {
+          profession: skin.profession,
+          xp: skin.xp,
+          level: skin.level,
+          about_me: skin.about_me,
+          pitch_text: skin.pitch_text,
+          pitch_video: skin.pitch_video,
+        };
+
+        const newValues = {
+          profession: newProfession,
+          xp: newXp,
+          level: newLevel,
+          about_me: newAboutMe,
+          pitch_text: newPitchText,
+          pitch_video: newPitchVideo,
+        };
+
+        await query(
+          `INSERT INTO valueskin_audit_log (user_id, valueskin_id, action, old_values, new_values, changed_fields, changed_at)
+           VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+          [userId, id, 'updated', JSON.stringify(oldValues), JSON.stringify(newValues), JSON.stringify(changedFields)]
+        );
+      }
+
       return res.status(200).json({
+        success: true,
         id: updated.id,
         profession: updated.profession,
         slot: updated.slot,
@@ -84,6 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pitchText: updated.pitch_text,
         pitchVideo: updated.pitch_video,
         updatedAt: updated.updated_at,
+        changedFields: changedFields.length > 0 ? changedFields : [],
       });
     }
 
