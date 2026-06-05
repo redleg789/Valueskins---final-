@@ -2,7 +2,15 @@ import crypto from 'crypto';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const GOOGLE_REDIRECT_URI = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/oauth/google/callback';
+const GOOGLE_REDIRECT_URI = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || 'https://valueskins-final.vercel.app/api/oauth/google/callback';
+
+// Debug logging
+if (typeof window !== 'undefined' && !GOOGLE_CLIENT_ID) {
+  console.error('⚠️ GOOGLE_CLIENT_ID is missing! Check Vercel env vars. Current env:', {
+    clientId: GOOGLE_CLIENT_ID,
+    redirectUri: GOOGLE_REDIRECT_URI,
+  });
+}
 
 const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
