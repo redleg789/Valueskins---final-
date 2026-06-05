@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export interface DefaultValueSkin {
   id: string;
@@ -15,16 +15,17 @@ export interface DefaultValueSkin {
 
 /**
  * Hook to fetch a user's default ValueSkin (public data)
+ * WITH REAL-TIME POLLING — automatically syncs changes from other users
  */
-export function useDefaultValueSkin(userId: string | null) {
+export function useDefaultValueSkin(userId: string | null, autoRefresh: boolean = true) {
   const [data, setData] = useState<DefaultValueSkin | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateRef = useRef<string | null>(null);
 
-  const fetch = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!userId) return;
-    setLoading(true);
-    setError(null);
 
     try {
       const response = await fetch(`/api/valueskins/get-default?userId=${userId}`);
@@ -32,16 +33,51 @@ export function useDefaultValueSkin(userId: string | null) {
         throw new Error('Failed to fetch default ValueSkin');
       }
       const result = await response.json();
-      setData(result.defaultValueSkin);
+
+      // Only update if data has changed (prevent unnecessary re-renders)
+      const newData = result.defaultValueSkin;
+      const updateHash = JSON.stringify(newData);
+
+      if (updateHash !== lastUpdateRef.current) {
+        lastUpdateRef.current = updateHash;
+        setData(newData);
+      }
+
+      setError(null);
     } catch (err: any) {
       setError(err.message);
-      setData(null);
-    } finally {
-      setLoading(false);
     }
   }, [userId]);
 
-  return { data, loading, error, fetch };
+  // Initial fetch
+  useEffect(() => {
+    if (!userId) return;
+
+    setLoading(true);
+    fetchData().finally(() => setLoading(false));
+  }, [userId, fetchData]);
+
+  // Set up polling for real-time updates (every 2 seconds)
+  useEffect(() => {
+    if (!userId || !autoRefresh) return;
+
+    // Start polling
+    pollingIntervalRef.current = setInterval(() => {
+      fetchData();
+    }, 2000); // Poll every 2 seconds for real-time updates
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [userId, autoRefresh, fetchData]);
+
+  const manualRefresh = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: manualRefresh };
 }
 
 /**
@@ -125,4 +161,85 @@ export function useInitializeDefaultValueSkin() {
   }, []);
 
   return { initialize, loading, error };
+}
+
+/**
+ * Hook to fetch CURRENT USER's default ValueSkin with real-time polling
+ * Automatically syncs changes made in other sessions/browsers
+ */
+export function useMyDefaultValueSkinRealTime() {
+  const [data, setData] = useState<DefaultValueSkin | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateRef = useRef<string | null>(null);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+
+  // Step 1: Get current user's ID from session
+  useEffect(() => {
+    const fetchSessionUser = async () => {
+      try {
+        const response = await fetch('/api/auth/check', { credentials: 'include' });
+        if (response.ok) {
+          const sessionData = await response.json();
+          if (sessionData.user_id) {
+            setSessionUserId(sessionData.user_id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch session:', err);
+      }
+    };
+
+    fetchSessionUser();
+  }, []);
+
+  // Step 2: Fetch and poll the user's default ValueSkin
+  const fetchMyValueSkin = useCallback(async () => {
+    if (!sessionUserId) return;
+
+    try {
+      const response = await fetch(`/api/valueskins/get-default?userId=${sessionUserId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch ValueSkin');
+      }
+      const result = await response.json();
+
+      // Only update if changed
+      const updateHash = JSON.stringify(result.defaultValueSkin);
+      if (updateHash !== lastUpdateRef.current) {
+        lastUpdateRef.current = updateHash;
+        setData(result.defaultValueSkin);
+      }
+
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, [sessionUserId]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (!sessionUserId) return;
+
+    setLoading(true);
+    fetchMyValueSkin().finally(() => setLoading(false));
+  }, [sessionUserId, fetchMyValueSkin]);
+
+  // Start polling (every 2 seconds for real-time updates)
+  useEffect(() => {
+    if (!sessionUserId) return;
+
+    pollingIntervalRef.current = setInterval(() => {
+      fetchMyValueSkin();
+    }, 2000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [sessionUserId, fetchMyValueSkin]);
+
+  return { data, loading, error };
 }

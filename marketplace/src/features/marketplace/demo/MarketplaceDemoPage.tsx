@@ -27,7 +27,7 @@ import {
 import { STICKER_MANIFEST } from '@/features/valueskins/core/stickers/sticker-manifest';
 import { TimelineView, DeliverablesView, InvoiceView, ContractView } from '@/components/DealPhaseExtensions';
 import { ValueSkinEditModal } from '@/components/ValueSkinEditModal';
-import { useDefaultValueSkin, useUpdateValueSkin } from '@/lib/valueskins/hooks';
+import { useDefaultValueSkin, useUpdateValueSkin, useMyDefaultValueSkinRealTime } from '@/lib/valueskins/hooks';
 
 /** Get sticker image path for any profession — checks PROFESSION_BADGES first, then auto-generated manifest */
 function getStickerForProfession(profession: string): string | undefined {
@@ -346,6 +346,42 @@ export default function MarketplaceDemoPage() {
     } catch (e) { /* quota exceeded — safe to ignore */ }
   }, [valueSkins, skinsLoaded]);
 
+  // REAL-TIME SYNC: Sync the API-fetched ValueSkin with local state
+  // This ensures changes made in other sessions/browsers appear immediately
+  useEffect(() => {
+    if (!realTimeDefaultSkin) return;
+
+    // Update the local valueSkins state with the real-time data
+    setValueSkins(prev => {
+      const updated = { ...prev };
+
+      // Find the slot that has this profession
+      let foundSlot: string | null = null;
+      for (const [slot, skin] of Object.entries(updated)) {
+        if (skin?.profession === realTimeDefaultSkin.name) {
+          foundSlot = slot;
+          break;
+        }
+      }
+
+      // If found, update it; otherwise, add to first available slot
+      if (foundSlot) {
+        updated[foundSlot] = {
+          profession: realTimeDefaultSkin.name,
+          slot: foundSlot as any,
+        };
+      } else if (!Object.values(updated).some(s => s?.profession)) {
+        // Only auto-add if no skins exist yet
+        updated['profession'] = {
+          profession: realTimeDefaultSkin.name,
+          slot: 'profession' as any,
+        };
+      }
+
+      return updated;
+    });
+  }, [realTimeDefaultSkin]);
+
   // Which slot is being assigned in the Store modal
   const [assigningSlot, setAssigningSlot] = useState<ValueSkinSlot | null>(null);
 
@@ -426,6 +462,9 @@ export default function MarketplaceDemoPage() {
   const [showEditValueSkinModal, setShowEditValueSkinModal] = useState(false);
   const [editingValueSkinId, setEditingValueSkinId] = useState<string | null>(null);
   const [editingValueSkinData, setEditingValueSkinData] = useState<any>(null);
+
+  // Real-time ValueSkin syncing — fetches current user's default skin with 2-second polling
+  const { data: realTimeDefaultSkin } = useMyDefaultValueSkinRealTime();
 
   // Marketplace role & gate
   const [marketplaceRole, setMarketplaceRole] = useState<'none' | 'creator' | 'brand'>('none');
