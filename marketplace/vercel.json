@@ -8,13 +8,5 @@
       "path": "/api/cron/archive-deals",
       "schedule": "0 0 * * 0"
     }
-  ],
-  "env": {
-    "DATABASE_URL": {
-      "required": true
-    },
-    "CRON_SECRET": {
-      "required": true
-    }
-  }
+  ]
 }
