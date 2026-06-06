@@ -1780,13 +1780,13 @@ export default function MarketplaceDemoPage() {
             }}
             style={{ padding: '8px 16px', background: C.primary, color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
           >
+            Logout
+          </button>
           <button
             onClick={() => setShowDeleteConfirm(true)}
             style={{ padding: '8px 16px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
           >
             Delete Account
-          </button>
-            Logout
           </button>
         </div>
       </div>
