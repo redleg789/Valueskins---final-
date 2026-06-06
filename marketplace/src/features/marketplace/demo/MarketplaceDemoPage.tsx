@@ -171,11 +171,13 @@ const MOCK_REPUTATION = {
 
 export default function MarketplaceDemoPage() {
   const { account, loading } = useAuth();
-  const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
+
   const userRole = account?.role;
   const isBrand = userRole === 'brand';
   const isCreator = userRole === 'creator';
   const roleNotSet = !userRole;
+  const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
+
 
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
