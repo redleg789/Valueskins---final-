@@ -2177,6 +2177,11 @@ export default function MarketplaceDemoPage() {
                         <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, marginBottom: '2px' }}>{profileName || 'Your Name'}</div>
                         <div style={{ fontSize: '14px', color: C.textSecondary }}>@{(profileName || 'user').toLowerCase().replace(/\s+/g, '_')}</div>
                       </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+                          <button style={{ padding: '6px 12px', borderRadius: '20px', background: isBrand ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)', border: `1px solid ${isBrand ? '#3b82f6' : '#22c55e'}`, color: isBrand ? '#3b82f6' : '#22c55e', fontSize: '12px', fontWeight: 600, cursor: 'default' }}>
+                            You're a {isBrand ? 'Brand' : 'Creator'}
+                          </button>
+                        </div>
 
                       {/* Profile Bio */}
                       {editingProfile ? (
