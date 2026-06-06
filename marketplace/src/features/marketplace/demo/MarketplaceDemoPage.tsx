@@ -2703,7 +2703,7 @@ export default function MarketplaceDemoPage() {
                       ]).map(({ role, title, desc, icon }) => (
                         <button
                           key={role}
-                          onClick={() => setMarketplaceRole(role)}
+                          onClick={async () => { setMarketplaceRole(role); await fetch('/api/auth/update-role', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ role }) }); }}
                           style={{
                             flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: '16px',
                             padding: '32px 20px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s',
