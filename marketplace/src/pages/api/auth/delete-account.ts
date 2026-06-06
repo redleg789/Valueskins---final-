@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const userId = session.user_id;
 
-    // Delete all user data
+    // Delete ALL user-related data
     await query('DELETE FROM auth_sessions WHERE user_id = $1', [userId]);
     await query('DELETE FROM users WHERE id = $1', [userId]);
 
