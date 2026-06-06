@@ -155,7 +155,45 @@ type Opportunity = {
 const SLOTS: ValueSkinSlot[] = ['profession', 'passion', 'hobby'];
 
 // Channels — skin-gated group DMs. These appear alongside regular DMs with a ValueSkin badge.
-const CHANNELS: any[] = [];
+const CHANNELS: { id: number; name: string; avatarColor: string; avatarAbbr: string; description: string; visibility: 'public' | 'private'; gateType: 'any_valueskin' | 'specific'; requiredSkin: string | null; allowedProfessions: string[]; memberCount: number; lastMessage: { author: string; text: string; time: string }; messages: { id: number; author: string; handle: string; text: string; time: string }[] }[] = [
+  {
+    id: 0, name: 'SWE Underground', avatarColor: '#0066CC', avatarAbbr: 'SWE',
+    description: 'Side projects, job referrals, and raw opinions without the LinkedIn polish.',
+    visibility: 'public', gateType: 'specific', requiredSkin: 'Software Engineer',
+    allowedProfessions: ['Software Engineer', 'DevOps Engineer', 'AI/ML Specialist'],
+    memberCount: 2847,
+    lastMessage: { author: 'Alex R.', text: 'Rust > Go for anything that matters. Fight me.', time: '2h' },
+    messages: [
+      { id: 0, author: 'Marcus T.', handle: '@ml_marcus', text: 'Just shipped a RAG pipeline that cut hallucination rate by 60%. Happy to share the architecture.', time: '4h ago' },
+      { id: 1, author: 'Priya S.', handle: '@priya_builds', text: 'Monthly hiring board is live — drop your referral links below.', time: '3h ago' },
+      { id: 2, author: 'Alex R.', handle: '@alex_codes', text: 'Rust > Go for anything that matters. Fight me.', time: '2h ago' },
+    ],
+  },
+  {
+    id: 1, name: 'MD Lounge', avatarColor: '#00897B', avatarAbbr: 'MD',
+    description: 'Verified doctors and surgeons only. Clinical discussions and career advice.',
+    visibility: 'private', gateType: 'specific', requiredSkin: 'Doctor',
+    allowedProfessions: ['Doctor', 'Surgeon', 'Nurse'],
+    memberCount: 612,
+    lastMessage: { author: 'Dr. Chen', text: '34F with atypical chest pain. What would your differential be?', time: '3h' },
+    messages: [
+      { id: 3, author: 'Dr. Chen', handle: '@drchen', text: 'Interesting presentation today — 34F with atypical chest pain. What would your differential be?', time: '3h ago' },
+      { id: 4, author: 'Dr. Williams', handle: '@drwilliams', text: 'CME webinar this Friday at 6PM EST. See you there.', time: '2d ago' },
+    ],
+  },
+  {
+    id: 2, name: 'Founders Corner', avatarColor: '#37474F', avatarAbbr: 'FC',
+    description: 'Any ValueSkin gets you in. About grit, not credentials.',
+    visibility: 'public', gateType: 'any_valueskin', requiredSkin: null,
+    allowedProfessions: [],
+    memberCount: 5241,
+    lastMessage: { author: 'Lin M.', text: 'We just crossed $1M ARR. Sharing the full breakdown next week.', time: '1h' },
+    messages: [
+      { id: 5, author: 'Sam K.', handle: '@samk_ceo', text: 'Lesson from year 3: hire for mindset, train for skill. Churn dropped 40%.', time: '5h ago' },
+      { id: 6, author: 'Lin M.', handle: '@lin_builds', text: 'We just crossed $1M ARR. Sharing the full breakdown next week. AMA.', time: '1h ago' },
+    ],
+  },
+];
 
 const MOCK_REPUTATION = {
   score: 78,
@@ -198,8 +236,8 @@ export default function MarketplaceDemoPage() {
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
 
   // Editable profile
-  const [profileName, setProfileName] = useState(account?.display_name || '');
-  const [profileBio, setProfileBio] = useState('');
+  const [profileName, setProfileName] = useState('Your Name');
+  const [profileBio, setProfileBio] = useState('Creator, builder, thinker. Tap Edit to make this yours.');
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [portfolioImage, setPortfolioImage] = useState<string | null>(null);
@@ -9858,6 +9896,7 @@ export default function MarketplaceDemoPage() {
             { label: 'Profile', view: 'profile' as const },
             { label: 'Market', view: 'mim' as const },
             { label: 'Store', view: 'store' as const },
+            { label: 'Messages', view: 'messages' as const },
             { label: 'Settings', view: 'settings' as const },
           ]).map(({ label, view }) => (
             <button
