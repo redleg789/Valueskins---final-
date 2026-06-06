@@ -41,9 +41,9 @@ export default function HomePage() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    router.push('/auth/login');
+    await new Promise(resolve => setTimeout(resolve, 100));
+    window.location.href = '/auth/login';
   };
-
   return (
     <div style={{ minHeight: '100vh', background: C.surface, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
