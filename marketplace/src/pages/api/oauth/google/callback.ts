@@ -56,13 +56,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (result.rows.length > 0) {
       userId = result.rows[0].id;
       console.log('✅ Found user:', userId);
-      await query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [userId]);
+      try { await query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [userId]); } catch {}
     } else {
       console.log('🆕 Creating new user for:', googleUser.email);
-      const createResult = await query(
-        'INSERT INTO users (instagram_user_id, username, display_name, avatar_url, is_active, onboarding_stage) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-        [instagramUserId, googleUser.email.split('@')[0], googleUser.name || googleUser.email, googleUser.picture || null, true, 'pending']
-      );
+      // Try with onboarding_stage first, fall back without it if column doesn't exist
+      let createResult;
+      try {
+        createResult = await query(
+          'INSERT INTO users (instagram_user_id, username, display_name, avatar_url, is_active, onboarding_stage) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+          [instagramUserId, googleUser.email.split('@')[0], googleUser.name || googleUser.email, googleUser.picture || null, true, 'pending']
+        );
+      } catch {
+        createResult = await query(
+          'INSERT INTO users (instagram_user_id, username, display_name, avatar_url, is_active) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [instagramUserId, googleUser.email.split('@')[0], googleUser.name || googleUser.email, googleUser.picture || null, true]
+        );
+      }
       userId = createResult.rows[0].id;
       console.log('✅ Created user:', userId);
     }

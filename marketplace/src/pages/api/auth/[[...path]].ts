@@ -65,7 +65,19 @@ function formatUserData(row: any) {
   };
 }
 
+// Run migrations once on cold start
+let migrated = false;
+async function runMigrations() {
+  if (migrated) return;
+  try {
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_stage TEXT DEFAULT 'complete'`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT`);
+    migrated = true;
+  } catch {}
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await runMigrations();
   const { path } = req.query;
   const pathStr = Array.isArray(path) ? path.join('/') : (path ?? '');
 
