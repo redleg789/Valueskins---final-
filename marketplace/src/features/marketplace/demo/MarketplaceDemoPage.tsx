@@ -1167,6 +1167,7 @@ export default function MarketplaceDemoPage() {
   const [newCampaignRequirements, setNewCampaignRequirements] = useState<string[]>([]);
   const [newCampaignReqInput, setNewCampaignReqInput] = useState('');
   const [newCampaignCreatorCount, setNewCampaignCreatorCount] = useState(1);
+  const [newCampaignValueskin, setNewCampaignValueskin] = useState<ValueSkinSlot>('profession');
 
   // Campaign POC (Point of Contact) fields
   const [newCampaignPocName, setNewCampaignPocName] = useState('');
@@ -5061,6 +5062,14 @@ export default function MarketplaceDemoPage() {
                           <div style={{ marginBottom:'12px' }}>
                             <div style={{ fontSize:'11px', color:C.textMuted, fontWeight:600, marginBottom:'4px' }}>Campaign title *</div>
                             <input type="text" value={newCampaignTitle} onChange={e=>setNewCampaignTitle(e.target.value)} placeholder="e.g. Spring Product Launch" style={{ width:'100%', background:C.bg, border:`1px solid ${C.border}`, borderRadius:'8px', color:C.text, padding:'8px 10px', fontSize:'13px', fontFamily:'inherit', outline:'none', boxSizing:'border-box' as const }} />
+                          <div style={{ marginBottom:'12px' }}>
+                            <div style={{ fontSize:'11px', color:C.textMuted, fontWeight:600, marginBottom:'4px' }}>Select ValueSkin Type *</div>
+                            <div style={{ display:'flex', gap:'8px' }}>
+                              {(['profession', 'passion', 'hobby'] as const).map(skin => (
+                                <button key={skin} onClick={() => setNewCampaignValueskin(skin)} style={{ flex:1, padding:'8px', background: newCampaignValueskin === skin ? C.primary : C.bg, color: newCampaignValueskin === skin ? '#fff' : C.text, border: newCampaignValueskin === skin ? `1px solid ${C.primary}` : `1px solid ${C.border}`, borderRadius:'6px', cursor:'pointer', fontSize:'12px', fontWeight: newCampaignValueskin === skin ? 700 : 500 }}>{skin.charAt(0).toUpperCase() + skin.slice(1)}</button>
+                              ))}
+                            </div>
+                          </div>
                           </div>
                           <div style={{ marginBottom:'12px' }}>
                             <div style={{ fontSize:'11px', color:C.textMuted, fontWeight:600, marginBottom:'4px' }}>About your product / campaign *</div>
@@ -5257,7 +5266,7 @@ export default function MarketplaceDemoPage() {
                               if (missing.length > 0) { setPurchaseToast(`Missing: ${missing.join(', ')}`); setTimeout(()=>setPurchaseToast(null),4000); return; }
                               const escrowPool = parseInt(newCampaignBudget||'0') * newCampaignCreatorCount;
                               const newC: Campaign = {
-                                id:Date.now(), brandName:profileName, brandProfession:activeBrandSkin??'', title:newCampaignTitle, description:newCampaignDesc, about:newCampaignAbout, requiredProfessions:[activeBrandSkin ?? ''], minLevel:newCampaignMinLevel, maxLevel:newCampaignMaxLevel, budget:newCampaignBudget, deadline:newCampaignDeadline, location:newCampaignLocation, nonNegotiables:newCampaignNonNeg, deliverables:newCampaignDeliverables, compensationType:newCampaignCompensation, exclusivity:newCampaignExclusivity, usageRights:newCampaignUsageRights, audienceTarget:newCampaignAudienceTarget, requirements:newCampaignRequirements, scriptMode:newCampaignScriptMode, scriptText:newCampaignScriptText, status:'open', applicants:0, creatorCount:newCampaignCreatorCount, escrowFunded:false, escrowPool, escrowAllocated:0,
+                                id:Date.now(), brandName:profileName, brandProfession:activeBrandSkin??'', title:newCampaignTitle, description:newCampaignDesc, about:newCampaignAbout, requiredProfessions:[activeBrandSkin ?? ''], requiredValueskin: newCampaignValueskin, minLevel:newCampaignMinLevel, maxLevel:newCampaignMaxLevel, budget:newCampaignBudget, deadline:newCampaignDeadline, location:newCampaignLocation, nonNegotiables:newCampaignNonNeg, deliverables:newCampaignDeliverables, compensationType:newCampaignCompensation, exclusivity:newCampaignExclusivity, usageRights:newCampaignUsageRights, audienceTarget:newCampaignAudienceTarget, requirements:newCampaignRequirements, scriptMode:newCampaignScriptMode, scriptText:newCampaignScriptText, status:'open', applicants:0, creatorCount:newCampaignCreatorCount, escrowFunded:false, escrowPool, escrowAllocated:0,
                                 poc: newCampaignPocName.trim() ? {
                                   name: newCampaignPocName.trim(),
                                   contactHandle: newCampaignPocHandle.trim().startsWith('@') ? newCampaignPocHandle.trim() : `@${newCampaignPocHandle.trim()}`,
