@@ -176,7 +176,6 @@ export default function MarketplaceDemoPage() {
   const isBrand = userRole === 'brand';
   const isCreator = userRole === 'creator';
   const roleNotSet = !userRole;
-  const isBrand = account?.modules?.some(m => m.code === 'brand' && m.is_active) ?? false;
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
       if (p === '/feed' || p === '/demo/marketplace' || p === '/') return 'mim';
