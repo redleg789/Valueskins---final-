@@ -17,19 +17,24 @@ export default function DemoWrapper() {
   const router = useRouter();
   const { account, loading } = useAuth();
   const [isLocalhost, setIsLocalhost] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setIsLocalhost(window.location.hostname === 'localhost');
+    const host = window.location.hostname;
+    setIsLocalhost(host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168'));
+    setMounted(true);
   }, []);
 
-  // On localhost, show skip button
-  if (isLocalhost) {
+  // On localhost, show skip button - renders immediately
+  if (mounted && isLocalhost) {
     return (
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '10px' }}>ValueSkins Demo</div>
         <button onClick={() => router.push('/demo/instagram')} style={{ padding: '12px 24px', background: C.accent, border: 'none', borderRadius: '8px', color: '#000', fontWeight: '600', cursor: 'pointer', fontSize: '16px' }}>
           Skip to Demo
         </button>
-        {account && <div style={{ fontSize: '12px', color: C.textMuted }}>Logged in as: {account.display_name}</div>}
+        {account && <div style={{ fontSize: '12px', color: C.textMuted, marginTop: '10px' }}>Logged in as: {account.display_name}</div>}
+        <div style={{ fontSize: '11px', color: C.textMuted, marginTop: '20px' }}>Host: {window.location.hostname}</div>
       </div>
     );
   }
