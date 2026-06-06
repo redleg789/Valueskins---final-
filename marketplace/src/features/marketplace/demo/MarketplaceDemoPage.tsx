@@ -1794,6 +1794,20 @@ export default function MarketplaceDemoPage() {
       {/* ── MAIN CONTENT ──────────────────────────── */}
       <div style={{ flex: 1, overflow: 'auto' }}>
 
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 }}>
+          <div style={{ background:C.surface, borderRadius:'16px', padding:'24px', maxWidth:'400px', width:'95vw', border:`1px solid ${C.border}` }}>
+            <div style={{ fontSize:'18px', fontWeight:700, color:C.text, marginBottom:'8px' }}>Delete Account?</div>
+            <div style={{ fontSize:'13px', color:C.textSecondary, marginBottom:'16px', lineHeight:1.5 }}>This will permanently delete your account and all data. This cannot be undone.</div>
+            <div style={{ display:'flex', gap:'8px' }}>
+              <button onClick={() => setShowDeleteConfirm(false)} style={{ flex:1, background:'none', border:`1px solid ${C.border}`, borderRadius:'8px', padding:'11px', color:C.text, fontWeight:700, fontSize:'13px', cursor:'pointer' }}>Cancel</button>
+              <button onClick={async () => { try { await fetch('/api/auth/delete-account', { method: 'POST', credentials: 'include' }); window.location.href = '/auth/login'; } catch (err) { console.error('Delete failed:', err); alert('Delete failed'); } }} style={{ flex:1, background:'#ef4444', border:'none', borderRadius:'8px', padding:'11px', color:'#fff', fontWeight:700, fontSize:'13px', cursor:'pointer' }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ONBOARDING OVERLAY ──────────────────────────── */}
 
       {/* ValueSkin Showcase Modal — add video + pitch when clicking your skin */}
