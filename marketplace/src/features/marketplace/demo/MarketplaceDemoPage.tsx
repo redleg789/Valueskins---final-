@@ -406,6 +406,17 @@ export default function MarketplaceDemoPage() {
   // Marketplace role & gate
   const [marketplaceRole, setMarketplaceRole] = useState<'none' | 'creator' | 'brand'>('none');
   const [brandValueSkins, setBrandValueSkins] = useState<string[]>([]);
+
+  // Auto-set marketplace role based on account role
+  useEffect(() => {
+    if (isBrand) {
+      setMarketplaceRole('brand');
+    } else if (isCreator) {
+      setMarketplaceRole('creator');
+    } else {
+      setMarketplaceRole('none');
+    }
+  }, [isBrand, isCreator]);
   const [activeBrandSkin, setActiveBrandSkin] = useState<string | null>(null);
 
   // Fetch creators from backend API when brand skin changes
@@ -2752,7 +2763,7 @@ export default function MarketplaceDemoPage() {
                     {/* Category filter chips — scrollable */}
                     {creatorMarketplaceTab === 'opportunities' && (
                     <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', scrollbarWidth: 'none' }}>
-                      {ownedSkins.map(s => s.profession).map(skin => {
+                      {!isBrand && ownedSkins.map(s => s.profession).map(skin => {
                         const isActive = selectedMarketplaceSkin === skin;
                         return (
                           <button
