@@ -48,30 +48,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let userId: string;
-    let result = await query('SELECT id FROM users WHERE google_id = $1', [googleUser.sub]);
+    let result = await query('SELECT id FROM users WHERE email = $1 AND is_deleted = FALSE', [googleUser.email]);
 
     if (result.rows.length > 0) {
       userId = result.rows[0].id;
-      console.log('✅ Found user by google_id:', userId);
+      console.log('✅ Found user by email:', userId);
       await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
     } else {
-      result = await query('SELECT id FROM users WHERE email = $1 AND is_deleted = FALSE', [googleUser.email]);
+      console.log('🆕 Creating new user for:', googleUser.email);
+      const createResult = await query(
+        'INSERT INTO users (email, display_name, avatar_url) VALUES ($1, $2, $3) RETURNING id',
+        [googleUser.email, googleUser.name || googleUser.email, googleUser.picture || null]
+      );
+      userId = createResult.rows[0].id;
+      console.log('✅ Created user:', userId);
 
-      if (result.rows.length > 0) {
-        userId = result.rows[0].id;
-        console.log('✅ Found user by email:', userId);
-        await query('UPDATE users SET google_id = $1, updated_at = NOW() WHERE id = $2', [googleUser.sub, userId]);
-      } else {
-        console.log('🆕 Creating new user for:', googleUser.email);
-        const createResult = await query(
-          'INSERT INTO users (email, display_name, avatar_url, google_id) VALUES ($1, $2, $3, $4) RETURNING id',
-          [googleUser.email, googleUser.name || googleUser.email, googleUser.picture || null, googleUser.sub]
-        );
-        userId = createResult.rows[0].id;
-        console.log('✅ Created user:', userId);
-
-        await query('INSERT INTO accounts (user_id) VALUES ($1)', [userId]);
-      }
+      const accountResult = await query('INSERT INTO accounts (user_id) VALUES ($1) RETURNING id', [userId]);
+      console.log('✅ Created account:', accountResult.rows[0].id);
     }
 
     const sessionId = generateUUID();
