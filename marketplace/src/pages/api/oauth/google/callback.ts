@@ -83,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Set-Cookie', `valueskins_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`);
 
     // Redirect to home
-    return res.redirect('/demo/instagram');
+    return res.redirect('/');
   } catch (error) {
     console.error('OAuth callback error:', error);
     return res.status(500).redirect('/?error=auth_failed');
