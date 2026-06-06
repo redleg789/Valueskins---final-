@@ -3,14 +3,31 @@ import { query } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const result = await query(
-      `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users' ORDER BY ordinal_position`
-    );
+    // List all tables
+    const tablesResult = await query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public'
+      ORDER BY table_name
+    `);
+
+    const tables = tablesResult.rows.map(r => r.table_name);
+
+    // Try to get users table schema
+    let usersColumns = [];
+    try {
+      const columnsResult = await query(`
+        SELECT column_name, data_type FROM information_schema.columns
+        WHERE table_name = 'users'
+        ORDER BY ordinal_position
+      `);
+      usersColumns = columnsResult.rows;
+    } catch (e) {
+      usersColumns = [{ error: 'Could not fetch users table columns' }];
+    }
 
     return res.json({
-      message: 'Users table columns',
-      columns: result.rows.map(r => `${r.column_name} (${r.data_type})`),
-      raw: result.rows
+      allTables: tables,
+      usersColumns: usersColumns
     });
   } catch (error) {
     return res.status(500).json({
