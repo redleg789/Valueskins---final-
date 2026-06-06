@@ -2676,7 +2676,7 @@ export default function MarketplaceDemoPage() {
               )}
 
               {/* Layer 2: Role selection */}
-              {hasAnySkin && marketplaceRole === 'none' && (
+              {roleNotSet && marketplaceRole === 'none' && (
                 <>
                   <div style={{ padding: '12px 16px 0', position: 'sticky', top: 0, background: C.bg, zIndex: 10 }}>
                     <span style={{ fontSize: '22px', fontWeight: 700, color: C.text }}>Marketplace</span>
