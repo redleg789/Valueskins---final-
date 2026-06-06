@@ -12,7 +12,7 @@ interface GoogleUser {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('🔐 Callback hit! Method:', req.method, 'Query:', req.query);
+  console.log('🔐 OAuth callback hit');
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -47,24 +47,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'no_email' });
     }
 
-    let userId: string;
-    let result = await query('SELECT id FROM users WHERE email = $1 AND is_deleted = FALSE', [googleUser.email]);
+    // Use email as instagram_user_id for OAuth users
+    const instagramUserId = googleUser.email;
+
+    let userId: number;
+    let result = await query('SELECT id FROM users WHERE instagram_user_id = $1', [instagramUserId]);
 
     if (result.rows.length > 0) {
       userId = result.rows[0].id;
-      console.log('✅ Found user by email:', userId);
-      await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
+      console.log('✅ Found user:', userId);
+      await query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [userId]);
     } else {
       console.log('🆕 Creating new user for:', googleUser.email);
       const createResult = await query(
-        'INSERT INTO users (email, display_name, avatar_url) VALUES ($1, $2, $3) RETURNING id',
-        [googleUser.email, googleUser.name || googleUser.email, googleUser.picture || null]
+        'INSERT INTO users (instagram_user_id, username, display_name, avatar_url, role, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+        [instagramUserId, googleUser.email.split('@')[0], googleUser.name || googleUser.email, googleUser.picture || null, 'creator', true]
       );
       userId = createResult.rows[0].id;
       console.log('✅ Created user:', userId);
-
-      const accountResult = await query('INSERT INTO accounts (user_id) VALUES ($1) RETURNING id', [userId]);
-      console.log('✅ Created account:', accountResult.rows[0].id);
     }
 
     const sessionId = generateUUID();
@@ -78,12 +78,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const cookieStr = `valueskins_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
     res.setHeader('Set-Cookie', cookieStr);
-    console.log('✅ Session created and cookie set');
+    console.log('✅ Session cookie set');
 
     console.log('🚀 Redirecting to /');
     return res.redirect('/');
   } catch (error) {
-    console.error('❌ OAuth callback error:', error);
+    console.error('❌ OAuth error:', error);
     return res.status(500).json({
       error: 'auth_failed',
       details: error instanceof Error ? error.message : String(error),
