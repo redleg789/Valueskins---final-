@@ -2763,7 +2763,7 @@ export default function MarketplaceDemoPage() {
                         return (
                           <button
                             key={skin}
-                            onClick={() => { setSelectedMarketplaceSkin(skin); if (isCreator && account) localStorage.setItem(`creator_selected_skin_${account.id}`, skin);; setNegotiatingOpp(null); }}
+                            onClick={() => { setSelectedMarketplaceSkin(skin); setNegotiatingOpp(null); }}
                             style={{
                               padding: '7px 16px', borderRadius: '20px', border: 'none', whiteSpace: 'nowrap',
                               background: isActive ? C.text : C.card,
