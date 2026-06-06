@@ -1606,10 +1606,10 @@ export default function MarketplaceDemoPage() {
   const handleScriptApprove = () => {
     if (!activeDealKey) return;
     const isCreatorRole = marketplaceRole === 'creator';
-    const otherParty = isCreator ? (askModalOpp?.brand || 'Brand') : 'Creator';
+    const otherParty = isCreatorRole ? (askModalOpp?.brand || 'Brand') : 'Creator';
     const bothApproved = (isCreatorRole && brandScriptApproved) || (!isCreatorRole && creatorScriptApproved);
     const payload: any = {
-      [isCreator ? 'creatorScriptApproved' : 'brandScriptApproved']: true,
+      [isCreatorRole ? 'creatorScriptApproved' : 'brandScriptApproved']: true,
       scriptStatus: bothApproved ? 'approved' : 'submitted',
     };
     if (bothApproved) {
@@ -1618,8 +1618,8 @@ export default function MarketplaceDemoPage() {
       firebaseSendNotification(otherParty, 'application', 'Both parties approved the script! Ready to move to deliverables.');
       setPurchaseToast('Script approved by both parties');
     } else {
-      firebaseSendNotification(otherParty, 'application', `${isCreator ? 'Creator' : 'Brand'} approved the script. Awaiting your approval to proceed.`);
-      setPurchaseToast(`Script approved by ${isCreator ? 'you' : 'brand'}`);
+      firebaseSendNotification(otherParty, 'application', `${isCreatorRole ? 'Creator' : 'Brand'} approved the script. Awaiting your approval to proceed.`);
+      setPurchaseToast(`Script approved by ${isCreatorRole ? 'you' : 'brand'}`);
     }
     updateDeal(activeDealKey, payload);
     setTimeout(() => setPurchaseToast(null), 2500);
@@ -1629,7 +1629,7 @@ export default function MarketplaceDemoPage() {
     if (!activeDealKey) return;
     const isCreatorRole = marketplaceRole === 'creator';
     updateDeal(activeDealKey, {
-      [isCreator ? 'creatorScriptApproved' : 'brandScriptApproved']: false,
+      [isCreatorRole ? 'creatorScriptApproved' : 'brandScriptApproved']: false,
       scriptStatus: 'draft',
     });
     setPurchaseToast('Approval revoked');
@@ -2812,7 +2812,7 @@ export default function MarketplaceDemoPage() {
                     )}
 
                     {/* No skin selected prompt */}
-                    {!selectedMarketplaceSkin && isCreator && (
+                    {!selectedMarketplaceSkin && !isBrand && (
                       <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                         <div style={{ fontSize: '14px', color: C.textSecondary, lineHeight: 1.6 }}>
                           Select a category above to see opportunities matched to your ValueSkins.
