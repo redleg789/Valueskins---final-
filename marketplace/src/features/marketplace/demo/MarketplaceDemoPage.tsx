@@ -1605,9 +1605,9 @@ export default function MarketplaceDemoPage() {
 
   const handleScriptApprove = () => {
     if (!activeDealKey) return;
-    const isCreator = marketplaceRole === 'creator';
+    const isCreatorRole = marketplaceRole === 'creator';
     const otherParty = isCreator ? (askModalOpp?.brand || 'Brand') : 'Creator';
-    const bothApproved = (isCreator && brandScriptApproved) || (!isCreator && creatorScriptApproved);
+    const bothApproved = (isCreatorRole && brandScriptApproved) || (!isCreatorRole && creatorScriptApproved);
     const payload: any = {
       [isCreator ? 'creatorScriptApproved' : 'brandScriptApproved']: true,
       scriptStatus: bothApproved ? 'approved' : 'submitted',
@@ -1627,7 +1627,7 @@ export default function MarketplaceDemoPage() {
 
   const handleScriptRevoke = () => {
     if (!activeDealKey) return;
-    const isCreator = marketplaceRole === 'creator';
+    const isCreatorRole = marketplaceRole === 'creator';
     updateDeal(activeDealKey, {
       [isCreator ? 'creatorScriptApproved' : 'brandScriptApproved']: false,
       scriptStatus: 'draft',
