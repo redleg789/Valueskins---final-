@@ -2125,561 +2125,152 @@ export default function MarketplaceDemoPage() {
           {/* ── PROFILE VIEW ──────────────────────────────────── */}
           {activeView === 'profile' && (
             <>
-              {/* Header */}
-              <div style={{
-                height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                position: 'sticky', top: 0, background: C.bg, zIndex: 10, padding: '0 16px',
-              }}>
-                <span style={{ fontSize: '22px', fontWeight: 700, color: C.text }}>{profileName || 'Your Profile'}</span>
-                <button
-                  onClick={() => setShowAvatarSettings(!showAvatarSettings)}
-                  style={{ background: 'none', border: 'none', fontSize: '13px', color: C.textSecondary, cursor: 'pointer' }}
-                >
-                  Settings
-                </button>
-              </div>
+              {/* ── PROFILE VIEW ── */}
+              <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
 
-              {/* Avatar Settings */}
-              {showAvatarSettings && (
-                <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.border}`, background: C.surface }}>
-                  <ValueskinAvatarToggle
-                    enabled={valueskinAvatarEnabled}
-                    onChange={(v) => { setValueskinAvatarEnabled(v); }}
-                  />
-                  {hasValueSkin && (
-                    <div style={{ marginTop: '12px', fontSize: '11px', color: C.textMuted }}>
-                      Drag your skin badges anywhere on your profile.
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ValueSkins Profile Section */}
-              <div
-                ref={profileAreaRef}
-                style={{ padding: isMobile ? '12px' : '20px 20px 0', position: 'relative' }}
-                onMouseMove={e => {
-                  if (!draggingSkin || !profileAreaRef.current) return;
-                  dragMoved.current = true;
-                  const rect = profileAreaRef.current.getBoundingClientRect();
-                  const x = e.clientX - rect.left - draggingOffset.current.x;
-                  const y = e.clientY - rect.top - draggingOffset.current.y;
-                  setSkinPositions(prev => ({ ...prev, [draggingSkin]: { x, y } }));
-                }}
-                onMouseUp={() => setDraggingSkin(null)}
-                onMouseLeave={() => setDraggingSkin(null)}
-              >
-                {/* ValueSkins Profile Card */}
-                <div style={{
-                  background: C.surface,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: '16px',
-                  padding: '24px',
-                  marginBottom: '20px'
-                }}>
-                  {/* Avatar + Profile Info */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', marginBottom: '20px' }}>
+                {/* Top card: avatar + name + role */}
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '16px', padding: '24px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '20px' }}>
                     {/* Avatar */}
-                    <div style={{ flexShrink: 0 }}>
-                      <ProfilePhotoWithLongPress
-                        showValueskinAvatar={valueskinAvatarEnabled}
-                        level={currentLevel}
-                        valueSkins={valueSkins}
-                        avatarUrl={`https://api.dicebear.com/7.x/avataaars/svg?seed=${(profileName || 'User').replace(/\s+/g, '')}`}
-                        displayName={profileName || 'Your Name'}
-                        size={isMobile ? 64 : 96}
-                        onValueSkinsChange={setValueSkins}
-                      />
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: C.primary + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', fontWeight: 800, color: C.primary, flexShrink: 0 }}>
+                      {(account?.display_name || profileName || 'U').charAt(0).toUpperCase()}
                     </div>
-
-                    {/* Profile Text Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '20px', fontWeight: 700, color: C.text, marginBottom: '2px' }}>{profileName || 'Your Name'}</div>
-                        <div style={{ fontSize: '14px', color: C.textSecondary }}>@{(profileName || 'user').toLowerCase().replace(/\s+/g, '_')}</div>
-                      </div>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
-                          <button style={{ padding: '6px 12px', borderRadius: '20px', background: isBrand ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)', border: `1px solid ${isBrand ? '#3b82f6' : '#22c55e'}`, color: isBrand ? '#3b82f6' : '#22c55e', fontSize: '12px', fontWeight: 600, cursor: 'default' }}>
-                            You're a {isBrand ? 'Brand' : 'Creator'}
-                          </button>
-                        </div>
-
-                      {/* Profile Bio */}
+                    {/* Name + role */}
+                    <div style={{ flex: 1 }}>
                       {editingProfile ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)}
+                          <input
+                            type="text"
+                            value={profileName}
+                            onChange={e => setProfileName(e.target.value)}
                             placeholder="Your name"
-                            style={{ padding: '8px 10px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontSize: '13px', fontWeight: 600 }} />
-                          <textarea value={profileBio} onChange={e => setProfileBio(e.target.value)} rows={2}
-                            placeholder="Tell your story..."
-                            style={{ padding: '8px 10px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.surfaceAlt, color: C.text, fontSize: '12px', fontFamily: 'inherit', resize: 'none', lineHeight: 1.5 }} />
-                          <button onClick={() => setEditingProfile(false)}
-                            style={{ alignSelf: 'flex-start', padding: '6px 14px', borderRadius: '6px', border: 'none', background: C.primary, color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                            Save
-                          </button>
+                            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: '16px', fontWeight: 700, outline: 'none' }}
+                          />
+                          <textarea
+                            value={profileBio}
+                            onChange={e => setProfileBio(e.target.value)}
+                            rows={2}
+                            placeholder="Short bio — what you do, what you're known for"
+                            style={{ padding: '8px 12px', borderRadius: '8px', border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: '13px', fontFamily: 'inherit', resize: 'none', outline: 'none', lineHeight: 1.5 }}
+                          />
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await fetch('/api/user/update-profile', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({ display_name: profileName }),
+                                  });
+                                } catch {}
+                                setEditingProfile(false);
+                              }}
+                              style={{ padding: '7px 16px', borderRadius: '8px', border: 'none', background: C.primary, color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                            >Save</button>
+                            <button
+                              onClick={() => setEditingProfile(false)}
+                              style={{ padding: '7px 16px', borderRadius: '8px', border: `1px solid ${C.border}`, background: 'none', color: C.text, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                            >Cancel</button>
+                          </div>
                         </div>
                       ) : (
-                        <div>
-                          <div style={{ fontSize: '13px', color: C.text, lineHeight: '1.5', maxWidth: '320px' }}>{profileBio}</div>
-                          <button
-                            onClick={() => setEditingProfile(true)}
-                            style={{ marginTop: '8px', fontSize: '12px', color: C.primary, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}
-                          >
-                            Edit Profile
-                          </button>
-                        </div>
+                        <>
+                          <div style={{ fontSize: '22px', fontWeight: 800, color: C.text, marginBottom: '4px' }}>{account?.display_name || profileName || 'Your Name'}</div>
+                          <div style={{ fontSize: '13px', color: C.textSecondary, marginBottom: '8px' }}>{account?.email || ''}</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ padding: '4px 12px', borderRadius: '20px', background: isBrand ? 'rgba(59,130,246,0.1)' : 'rgba(34,197,94,0.1)', border: `1px solid ${isBrand ? '#3b82f6' : '#22c55e'}`, color: isBrand ? '#3b82f6' : '#22c55e', fontSize: '12px', fontWeight: 600 }}>
+                              {isBrand ? '🏢 Brand' : '🎨 Creator'}
+                            </span>
+                            <button onClick={() => setEditingProfile(true)} style={{ padding: '4px 12px', borderRadius: '20px', border: `1px solid ${C.border}`, background: 'none', color: C.textSecondary, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+                              Edit Profile
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
 
-                  {/* Stats */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', paddingTop: '16px', borderTop: `1px solid ${C.border}` }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>{completedDeals.length}</div>
-                      <div style={{ fontSize: '12px', color: C.textSecondary }}>Deals</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>{(metrics.brandRating || 0).toFixed(1)}</div>
-                      <div style={{ fontSize: '12px', color: C.textSecondary }}>Rating</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: C.text }}>${(completedDeals.reduce((sum, d) => sum + d.amount, 0) / 1000).toFixed(0)}K</div>
-                      <div style={{ fontSize: '12px', color: C.textSecondary }}>Earned</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Freely draggable skin badges — each positioned independently */}
-                {hasValueSkin && ownedSkins.map(({ slot, profession }, idx) => {
-                  const badge = PROFESSION_BADGES[profession];
-                  const pos = skinPositions[profession] ?? { x: 180 + idx * 40, y: 12 };
-                  const isDragging = draggingSkin === profession;
-
-                  return (
-                    <div
-                      key={profession}
-                      onMouseDown={e => {
-                        if (isMobile) return;
-                        e.preventDefault();
-                        dragMoved.current = false;
-                        const rect = profileAreaRef.current?.getBoundingClientRect();
-                        if (!rect) return;
-                        draggingOffset.current = { x: e.clientX - rect.left - pos.x, y: e.clientY - rect.top - pos.y };
-                        setDraggingSkin(profession);
-                      }}
-                      onClick={e => {
-                        if (dragMoved.current) { dragMoved.current = false; return; }
-                        e.stopPropagation();
-                        setShowSkinShowcaseModal(profession);
-                      }}
-                      onMouseEnter={() => setHoveringSticker(profession)}
-                      onMouseLeave={() => setHoveringSticker(null)}
-                      style={{
-                        position: 'absolute',
-                        left: pos.x,
-                        top: pos.y,
-                        cursor: isMobile ? 'pointer' : (isDragging ? 'grabbing' : 'grab'),
-                        userSelect: 'none',
-                        zIndex: isDragging ? 100 : 10,
-                        filter: isDragging ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' : 'none',
-                      }}
-                    >
-                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                        <span style={{ fontSize: '22px', lineHeight: 1, pointerEvents: 'none', display: 'block' }}>
-                          {badge?.emoji ?? badge?.abbreviation ?? profession.slice(0, 3).toUpperCase()}
-                        </span>
-
-                        {/* Edit button on hover (only show if on own profile) */}
-                        {hoveringSticker === profession && marketplaceRole === 'creator' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditModal(`default_${profession}`, {
-                                name: profession,
-                                description: skinPitchTexts[profession] || '',
-                                pitch: creatorPitchText || '',
-                                video: creatorPitchVideoUrl || '',
-                              });
-                            }}
-                            style={{
-                              position: 'absolute',
-                              bottom: '-4px',
-                              right: '-4px',
-                              width: '20px',
-                              height: '20px',
-                              borderRadius: '50%',
-                              background: C.primary,
-                              color: '#fff',
-                              border: 'none',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 20,
-                            }}
-                            title="Edit ValueSkin"
-                          >
-                            ✏️
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-
-                {/* Barter signal badge */}
-                {hasValueSkin && willingToBarter && (
-                  <div style={{
-                    borderRadius: '12px', padding: '10px 14px', marginTop: '12px',
-                    backgroundColor: `${C.success}10`,
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    fontSize: '13px', color: C.textSecondary, fontWeight: 600,
-                  }}>
-                    <span>Open to barter</span>
-                    <button
-                      onClick={() => setActiveView('settings')}
-                      style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: '11px', cursor: 'pointer', marginLeft: 'auto' }}
-                    >
-                      Edit
-                    </button>
-                  </div>
-                )}
-
-                {/* Availability badge */}
-                {hasValueSkin && (notAvailableFrom || notAvailableTo) && (
-                  <div style={{
-                    borderRadius: '12px', padding: '10px 14px', marginTop: '8px',
-                    backgroundColor: `${C.warning}10`, border: `1px solid ${C.warningBorder}`,
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    fontSize: '13px', color: C.textSecondary, fontWeight: 600,
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.warning} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span>Unavailable {notAvailableFrom && `from ${notAvailableFrom}`}{notAvailableTo && ` to ${notAvailableTo}`}</span>
-                    <button onClick={() => setActiveView('settings')} style={{ background: 'none', border: 'none', color: C.textMuted, fontSize: '11px', cursor: 'pointer', marginLeft: 'auto' }}>Edit</button>
-                  </div>
-                )}
-                {hasValueSkin && !notAvailableFrom && !notAvailableTo && (
-                  <div style={{
-                    borderRadius: '12px', padding: '10px 14px', marginTop: '8px',
-                    backgroundColor: `${C.success}10`,
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    fontSize: '13px', color: C.textSecondary, fontWeight: 600,
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.success} strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <span>Available for deals</span>
-                  </div>
-                )}
-
-                {/* Credentials & Identity Section */}
-                {/* Compact Verified Credentials — inline chip row */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '16px', alignItems: 'center' }}>
-                  {credentials.map((cred, i) => (
-                    <div key={i} style={{
-                      padding: '4px 8px',
-                      backgroundColor: C.surfaceAlt,
-                      color: C.textSecondary, borderRadius: '5px', fontSize: '11px', fontWeight: 600, border: `1px solid ${C.border}`,
-                    }}>
-                      {cred.platform.toUpperCase()}
-                    </div>
-                  ))}
-                  {['twitter', 'linkedin', 'tiktok'].map((platform) => {
-                    const proof = identityProofs.find(p => p.platform === platform);
-                    if (!proof?.verified) return null;
-                    return (
-                      <div key={platform} style={{
-                        padding: '4px 8px', backgroundColor: C.surfaceAlt,
-                        borderRadius: '5px', fontSize: '11px', color: C.textSecondary, fontWeight: 600, border: `1px solid ${C.border}`,
-                      }}>
-                        {platform.toUpperCase()}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Portfolio Image */}
-                {portfolioImage && (
-                  <div style={{ marginTop: '16px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${C.border}` }}>
-                    <div style={{ width: '100%', height: '240px', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      <img src={portfolioImage} alt="Why hire me" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                    </div>
-                    <div style={{ padding: '12px 14px', background: C.surface, fontSize: '12px', color: C.textMuted, fontWeight: '600' }}>
-                      Why brands should hire {profileName || 'this creator'}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-
-              {/* Tabs */}
-              <div style={{ borderTop: `1px solid ${C.border}`, display: 'flex' }}>
-                {['posts', 'reels', 'tagged', 'insights', 'deals', 'uploaded'].map((tab) => (
-                  <div key={tab} onClick={() => setActiveTab(tab)} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '44px', borderTop: activeTab === tab ? `2px solid ${tab === 'insights' ? C.primary : C.text}` : '2px solid transparent', color: activeTab === tab ? (tab === 'insights' ? C.primary : C.text) : C.textMuted, cursor: 'pointer', fontWeight: activeTab === tab ? '600' : 'normal', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {tab}
-                  </div>
-                ))}
-              </div>
-
-              {/* Post Grid — shown for posts/reels/tagged */}
-              {activeTab !== 'insights' && activeTab !== 'deals' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: C.border }}>
-                  {[...Array(9)].map((_, i) => (
-                    <div key={i} onClick={() => toggleLike(i)} style={{ aspectRatio: '1/1', background: C.surface, position: 'relative', cursor: 'pointer', overflow: 'hidden' }}>
-                      <img src={`https://picsum.photos/400/400?random=${i}`} alt="Post" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85 }} />
-                      {likedPosts.includes(i) && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)' }}>
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="#fff"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Deals Tab Content */}
-              {activeTab === 'deals' && (
-                <div style={{ padding:'20px' }}>
-                  <div style={{ fontSize:'13px', fontWeight:700, color:C.textMuted, textTransform:'uppercase', letterSpacing:'0.6px', marginBottom:'14px' }}>Completed Deals</div>
-                  {completedDeals.length === 0 ? (
-                    <div style={{ textAlign:'center', padding:'40px 20px', color:C.textMuted }}>
-                      <div style={{ fontSize:'14px', marginBottom:'4px' }}>No completed deals yet</div>
-                      <div style={{ fontSize:'12px' }}>Complete a deal in the Marketplace to see it here.</div>
-                    </div>
-                  ) : (
-                    completedDeals.map((deal, i) => (
-                      <div key={i} style={{ background:C.card, borderRadius:'10px', padding:'14px', marginBottom:'10px', border:`1px solid ${C.border}` }}>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
-                          <span style={{ fontSize:'13px', fontWeight:700, color:C.text }}>{deal.brand}</span>
-                          <span style={{ fontSize:'14px', fontWeight:800, color:C.success }}>${deal.amount.toLocaleString()}</span>
-                        </div>
-                        <div style={{ fontSize:'11px', color:C.textSecondary, marginBottom:'4px' }}>{deal.deliverable}</div>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'8px' }}>
-                          <span style={{ fontSize:'10px', color:C.textMuted }}>Completed {deal.completedAt}</span>
-                          <span style={{ fontSize:'10px', fontWeight:700, color:C.success, background:C.surfaceAlt, padding:'2px 8px', borderRadius:'6px' }}>Approved</span>
-                        </div>
-                        {/* Repeat deal & tip buttons */}
-                        <div style={{ display:'flex', gap:'8px' }}>
-                          <button onClick={() => { setPurchaseToast(`Reach out to ${deal.brand} about a repeat deal`); setTimeout(() => setPurchaseToast(null), 3000); }} style={{ flex:1, fontSize:'11px', fontWeight:700, padding:'8px 10px', background:`${C.primary}15`, border:`1px solid ${C.primary}30`, borderRadius:'8px', color:C.primary, cursor:'pointer' }}>
-                            Repeat Deal
-                          </button>
-                          <button onClick={() => { setTipForDealId(i); setShowTipModal(true); }} style={{ flex:1, fontSize:'11px', fontWeight:700, padding:'8px 10px', background:`rgba(255,171,0,0.12)`, border:`1px solid rgba(255,171,0,0.4)`, borderRadius:'8px', color:C.warning, cursor:'pointer' }}>
-                            💰 Tip
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                  <div style={{ marginTop:'16px', padding:'12px', background:'rgba(0,102,204,0.05)', borderRadius:'8px', border:`1px solid rgba(0,102,204,0.1)` }}>
-                    <div style={{ fontSize:'11px', fontWeight:700, color:C.text, marginBottom:'2px' }}>Total earned: ${completedDeals.reduce((s,d) => s+d.amount, 0).toLocaleString()}</div>
-                    <div style={{ fontSize:'11px', color:C.textSecondary }}>{completedDeals.length} deal{completedDeals.length !== 1 ? 's' : ''} completed</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Uploaded Tab Content */}
-              {activeTab === 'uploaded' && (
-                <div style={{ padding: '20px' }}>
-                  {uploadedItems.length === 0 ? (
-                    <div style={{ textAlign:'center', padding:'40px 20px', color:C.textMuted }}>
-                      <div style={{ fontSize:'14px', marginBottom:'4px' }}>No uploads yet</div>
-                      <div style={{ fontSize:'12px' }}>Complete deals and upload deliverables to see them here.</div>
-                    </div>
-                  ) : (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(100px, 1fr))', gap:'8px' }}>
-                      {uploadedItems.map((item, i) => (
-                        <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" style={{ position:'relative', paddingBottom:'100%', overflow:'hidden', borderRadius:'8px', background:C.card, border:`1px solid ${C.border}`, textDecoration:'none', display:'block' }}>
-                          <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'8px', background:'rgba(0,0,0,0.6)', opacity:0, transition:'opacity 0.2s', cursor:'pointer' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
-                            <div style={{ fontSize:'10px', fontWeight:700, color:C.text, marginBottom:'4px' }}>{item.format}</div>
-                            <div style={{ fontSize:'9px', color:C.textMuted }}>{item.brand}</div>
-                          </div>
-                          <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6m-3-3v6"/></svg>
-                          </div>
-                        </a>
-                      ))}
+                  {/* Bio display */}
+                  {!editingProfile && profileBio && (
+                    <div style={{ fontSize: '14px', color: C.textSecondary, lineHeight: 1.6, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
+                      {profileBio}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Insights Tab Content */}
-              {activeTab === 'insights' && (
-                <div style={{ padding: '20px' }}>
-                  <div
-                    onClick={() => setShowReputationModal(true)}
-                    style={{
-                      background: C.surface, border: `1px solid ${C.border}`,
-                      borderRadius: '14px', padding: '16px', marginBottom: '20px',
-                      cursor: 'pointer', transition: 'border-color 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.primary; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; }}
+                  {/* Stats row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', paddingTop: '16px', borderTop: profileBio && !editingProfile ? `1px solid ${C.border}` : undefined, marginTop: profileBio && !editingProfile ? '0' : '16px' }}>
+                    <div style={{ textAlign: 'center', padding: '12px', background: C.bg, borderRadius: '10px' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 800, color: C.text }}>{completedDeals.length}</div>
+                      <div style={{ fontSize: '11px', color: C.textMuted, marginTop: '2px' }}>Deals Done</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '12px', background: C.bg, borderRadius: '10px' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 800, color: C.text }}>{(metrics.brandRating || 0).toFixed(1)} ★</div>
+                      <div style={{ fontSize: '11px', color: C.textMuted, marginTop: '2px' }}>Rating</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '12px', background: C.bg, borderRadius: '10px' }}>
+                      <div style={{ fontSize: '22px', fontWeight: 800, color: C.text }}>${(completedDeals.reduce((s, d) => s + d.amount, 0) / 1000).toFixed(1)}K</div>
+                      <div style={{ fontSize: '11px', color: C.textMuted, marginTop: '2px' }}>{isBrand ? 'Spent' : 'Earned'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ValueSkins */}
+                {!isBrand && (
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: C.textMuted, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your ValueSkins</div>
+                    {ownedSkins.length === 0 ? (
+                      <div style={{ fontSize: '13px', color: C.textMuted, textAlign: 'center', padding: '20px 0' }}>No ValueSkins yet. Add one from the marketplace.</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {ownedSkins.map(({ slot, profession }) => {
+                          const badge = PROFESSION_BADGES[profession];
+                          const level = getSkinLevel(profession, metrics.followers, ownedSkins.length);
+                          return (
+                            <div key={slot} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: C.bg, borderRadius: '10px', border: `1px solid ${C.border}` }}>
+                              <div style={{ fontSize: '28px' }}>{badge?.emoji ?? '⭐'}</div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '14px', fontWeight: 700, color: C.text, textTransform: 'capitalize' }}>{profession}</div>
+                                <div style={{ fontSize: '11px', color: C.textMuted }}>Level {level} · {slot}</div>
+                              </div>
+                              <div style={{ padding: '4px 10px', borderRadius: '20px', background: C.primary + '22', color: C.primary, fontSize: '12px', fontWeight: 700 }}>Lv.{level}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Account actions */}
+                <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '16px', padding: '20px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: C.textMuted, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: '13px', color: C.textSecondary }}>Email</span>
+                      <span style={{ fontSize: '13px', color: C.text, fontWeight: 500 }}>{account?.email || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${C.border}` }}>
+                      <span style={{ fontSize: '13px', color: C.textSecondary }}>Role</span>
+                      <span style={{ fontSize: '13px', color: C.text, fontWeight: 500, textTransform: 'capitalize' }}>{isBrand ? 'Brand' : 'Creator'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                      <span style={{ fontSize: '13px', color: C.textSecondary }}>Member since</span>
+                      <span style={{ fontSize: '13px', color: C.text, fontWeight: 500 }}>{account?.created_at ? new Date(account.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    style={{ marginTop: '16px', width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ef444430', background: '#ef444408', color: '#ef4444', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    {/* Top row — score (tick icon removed) */}
-                    {visibleInsights.score && (
-                      <>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                          <div>
-                            <div style={{ fontSize: '13px', fontWeight: 700, color: C.text }}>Valueskins Insights</div>
-                            <div style={{ fontSize: '11px', color: C.textSecondary }}>Tap for full breakdown</div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '20px', fontWeight: 800, color: C.primary, lineHeight: 1 }}>847</div>
-                            <div style={{ fontSize: '10px', color: C.textMuted, fontWeight: 600 }}>/ 1000</div>
-                          </div>
-                        </div>
-                        <div style={{ height: '4px', background: C.border, borderRadius: '2px', overflow: 'hidden', marginBottom: '14px' }}>
-                          <div style={{ height: '100%', width: '84.7%', background: C.primary, borderRadius: '2px' }} />
-                        </div>
-                      </>
-                    )}
-
-                    {/* Metric cards row */}
-                    {(visibleInsights.engagement || visibleInsights.onTime || visibleInsights.deals || visibleInsights.rating) && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                        {[
-                          visibleInsights.engagement && { label: 'Engagement', value: `${metrics.engagement}%`, color: metrics.engagement >= 5 ? C.success : C.textSecondary },
-                          visibleInsights.onTime && { label: 'On-Time', value: `${metrics.onTimeRate}%`, color: metrics.onTimeRate >= 95 ? C.success : C.textSecondary },
-                          visibleInsights.deals && { label: 'Deals', value: `${metrics.dealsCompleted}`, color: C.text },
-                          visibleInsights.rating && { label: 'Rating', value: `${metrics.brandRating}`, color: metrics.brandRating >= 4.5 ? C.success : C.textSecondary },
-                        ].filter(Boolean).map((m: any) => (
-                          <div key={m.label} style={{ textAlign: 'center', padding: '8px 4px', background: C.surfaceAlt, borderRadius: '8px' }}>
-                            <div style={{ fontSize: '15px', fontWeight: 700, color: m.color, lineHeight: 1, marginBottom: '4px' }}>{m.value}</div>
-                            <div style={{ fontSize: '9px', fontWeight: 600, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>{m.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Trust level — shown per-skin when clicking individual skin sticker */}
-                  </div>
-
-                  {/* Factor breakdown — shown below the main card */}
-                  {visibleInsights.breakdown && (
-                    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '16px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '12px' }}>Score Breakdown</div>
-                      {factors.map((factor) => {
-                        const factorScores: Record<string, number> = {
-                          'Content Consistency': 82, 'Audience Engagement': 91,
-                          'Brand Partnerships': 78, 'On-time Delivery': 99,
-                          'Community Trust': 85, 'Profile Completeness': 95,
-                        };
-                        const earned = factorScores[factor.name] ?? Math.round(factor.maxPoints * 0.8);
-                        const fillPct = Math.round((earned / factor.maxPoints) * 100);
-                        return (
-                          <div key={factor.name} style={{ background: C.surfaceAlt, padding: '14px', borderRadius: '10px', marginBottom: '8px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                              <div>
-                                <div style={{ fontWeight: 700, fontSize: '13px', color: C.text }}>{factor.name}</div>
-                              </div>
-                              <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: '12px' }}>
-                                <span style={{ fontSize: '15px', fontWeight: 800, color: fillPct >= 90 ? C.success : fillPct >= 70 ? C.primary : C.warning }}>{earned}</span>
-                                <span style={{ fontSize: '11px', color: C.textMuted }}>/{factor.maxPoints}</span>
-                              </div>
-                            </div>
-                            <div style={{ height: '4px', background: C.border, borderRadius: '2px', overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${fillPct}%`, background: fillPct >= 90 ? C.success : fillPct >= 70 ? C.primary : C.warning, borderRadius: '2px', transition: 'width 0.3s' }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Creator Score Card */}
-                  <div style={{
-                    borderRadius: '12px',
-                    border: `1px solid ${C.borderLight}`,
-                    padding: '20px',
-                    marginTop: '20px',
-                    backgroundColor: C.bg,
-                  }}>
-                    <h3 style={{ marginTop: 0, marginBottom: '16px', color: C.text }}>Creator Score</h3>
-
-                    {/* Overall Score */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '20px',
-                      padding: '16px',
-                      backgroundColor: 'rgba(0,102,204,0.06)',
-                      borderRadius: '8px',
-                    }}>
-                      <div>
-                        <div style={{ fontSize: '12px', color: C.textSecondary }}>Overall Score</div>
-                        <div style={{
-                          fontSize: '32px',
-                          fontWeight: 'bold',
-                          color: MOCK_REPUTATION.score >= 80 ? C.textSecondary : MOCK_REPUTATION.score >= 50 ? '#f59e0b' : C.textMuted,
-                        }}>
-                          {MOCK_REPUTATION.score}
-                        </div>
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '8px',
-                      }}>
-                        <div style={{
-                          padding: '6px 12px',
-                          backgroundColor: MOCK_REPUTATION.riskTier === 'A' ? C.textSecondary : MOCK_REPUTATION.riskTier === 'B' ? '#3b82f6' : MOCK_REPUTATION.riskTier === 'C' ? '#f59e0b' : C.textMuted,
-                          color: 'white',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                        }}>
-                          Tier {MOCK_REPUTATION.riskTier}
-                        </div>
-                        <div style={{ fontSize: '12px', color: C.textSecondary }}>
-                          Max deal: ${MOCK_REPUTATION.maxDealSize.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Dimension Bars */}
-                    {[
-                      { label: 'On-Time Rate', value: MOCK_REPUTATION.onTimeRate },
-                      { label: 'Avg Rating', value: MOCK_REPUTATION.avgRating / 5 },
-                      { label: 'Response Score', value: MOCK_REPUTATION.responseScore },
-                      { label: 'Revision Efficiency', value: MOCK_REPUTATION.revisionEfficiency },
-                      { label: 'Repeat Brand Rate', value: MOCK_REPUTATION.repeatBrandRate },
-                    ].map((dim, i) => (
-                      <div key={i} style={{ marginBottom: '12px' }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          marginBottom: '4px',
-                          fontSize: '12px',
-                        }}>
-                          <span style={{ color: C.textSecondary }}>{dim.label}</span>
-                          <span style={{ color: C.text, fontWeight: 500 }}>{Math.round(dim.value * 100)}%</span>
-                        </div>
-                        <div style={{
-                          width: '100%',
-                          height: '6px',
-                          backgroundColor: 'rgba(0,0,0,0.06)',
-                          borderRadius: '3px',
-                          overflow: 'hidden',
-                        }}>
-                          <div style={{
-                            width: `${dim.value * 100}%`,
-                            height: '100%',
-                            backgroundColor: C.primary,
-                            transition: 'width 0.3s ease',
-                          }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                    Delete Account
+                  </button>
                 </div>
-              )}
+
+              </div>
             </>
           )}
 
-          {/* ── MARKETPLACE VIEW ──────────────────────────────── */}
           {activeView === 'mim' && (
             <>
               {/* Layer 1: Gate — no ValueSkin */}
