@@ -9,6 +9,7 @@ interface AccountResponse {
   email?: string;
   display_name?: string;
   avatar_url?: string | null;
+  role?: string;
   error?: string;
 }
 
@@ -43,7 +44,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<AccountResponse
     }
 
     const user = await queryOne(
-      'SELECT id, email, display_name, avatar_url FROM users WHERE id = $1',
+      'SELECT id, email, display_name, avatar_url, role FROM users WHERE id = $1',
       [session.user_id]
     );
 
@@ -56,6 +57,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse<AccountResponse
       email: user.email,
       display_name: user.display_name || '',
       avatar_url: user.avatar_url || null,
+      role: user.role || null,
     };
 
     // Cache for 5 minutes

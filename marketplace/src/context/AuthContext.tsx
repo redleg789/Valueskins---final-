@@ -21,6 +21,7 @@ interface Account {
   totp_enabled: boolean;
   created_at: string;
   last_login_at: string | null;
+  role?: string;
 }
 
 interface AuthContextType {
