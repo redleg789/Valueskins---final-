@@ -1802,7 +1802,7 @@ export default function MarketplaceDemoPage() {
             <div style={{ fontSize:'13px', color:C.textSecondary, marginBottom:'16px', lineHeight:1.5 }}>This will permanently delete your account and all data. This cannot be undone.</div>
             <div style={{ display:'flex', gap:'8px' }}>
               <button onClick={() => setShowDeleteConfirm(false)} style={{ flex:1, background:'none', border:`1px solid ${C.border}`, borderRadius:'8px', padding:'11px', color:C.text, fontWeight:700, fontSize:'13px', cursor:'pointer' }}>Cancel</button>
-              <button onClick={async () => { try { await fetch('/api/auth/delete-account', { method: 'POST', credentials: 'include' }); window.location.href = '/auth/login'; } catch (err) { console.error('Delete failed:', err); alert('Delete failed'); } }} style={{ flex:1, background:'#ef4444', border:'none', borderRadius:'8px', padding:'11px', color:'#fff', fontWeight:700, fontSize:'13px', cursor:'pointer' }}>Delete</button>
+              <button onClick={async () => { try { const r = await fetch('/api/auth/delete-account', { method: 'POST', credentials: 'include' }); if (r.ok) { window.location.href = '/auth/login'; } else { const e = await r.json(); alert('Delete failed: ' + (e.error || 'Unknown error')); } } catch (err) { console.error('Delete failed:', err); alert('Delete failed'); } }} style={{ flex:1, background:'#ef4444', border:'none', borderRadius:'8px', padding:'11px', color:'#fff', fontWeight:700, fontSize:'13px', cursor:'pointer' }}>Delete</button>
             </div>
           </div>
         </div>

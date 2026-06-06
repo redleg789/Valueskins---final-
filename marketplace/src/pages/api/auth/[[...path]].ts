@@ -55,12 +55,13 @@ function formatUserData(row: any) {
     preferred_locale: 'en',
     is_active: row.is_active !== false,
     is_locked: false,
-    onboarding_stage: 'complete',
+    onboarding_stage: row.onboarding_stage || 'complete',
     preferences: [],
     modules: activeModules,
     totp_enabled: false,
     created_at: row.created_at || new Date().toISOString(),
     last_login_at: row.last_login_at || new Date().toISOString(),
+    role: row.role || null,
   };
 }
 
@@ -77,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sessionToken = match[1];
     const result = await query(
       `SELECT u.id, u.instagram_user_id, u.username, u.display_name, u.avatar_url,
-              u.is_active, u.created_at, u.last_login_at
+              u.is_active, u.created_at, u.last_login_at, u.role, u.onboarding_stage
        FROM auth_sessions s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = $1 AND s.is_active = true AND s.expires_at > NOW()`,
@@ -170,6 +171,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       'valueskins_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0',
     ]);
     return res.status(200).json({ message: 'Logged out' });
+  }
+
+  // ── POST /api/auth/delete-account — delete user and all data ──
+  if (req.method === 'POST' && pathStr === 'delete-account') {
+    const match = cookie.match(/valueskins_session=([^;]+)/);
+    if (!match) return res.status(401).json({ error: 'Not authenticated' });
+    const sessionToken = match[1];
+    const sessionResult = await query(
+      'SELECT user_id FROM auth_sessions WHERE id = $1 AND is_active = true',
+      [sessionToken]
+    );
+    if (sessionResult.rows.length === 0) return res.status(401).json({ error: 'Session invalid' });
+    const userId = sessionResult.rows[0].user_id;
+    await query('DELETE FROM auth_sessions WHERE user_id = $1', [userId]);
+    await query('DELETE FROM users WHERE id = $1', [userId]);
+    res.setHeader('Set-Cookie', ['valueskins_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0']);
+    return res.status(200).json({ success: true });
   }
 
   // ── POST /api/auth/email/verify — mock ──

@@ -60,8 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       console.log('🆕 Creating new user for:', googleUser.email);
       const createResult = await query(
-        'INSERT INTO users (instagram_user_id, username, display_name, avatar_url, role, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-        [instagramUserId, googleUser.email.split('@')[0], googleUser.name || googleUser.email, googleUser.picture || null, 'creator', true]
+        'INSERT INTO users (instagram_user_id, username, display_name, avatar_url, is_active, onboarding_stage) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+        [instagramUserId, googleUser.email.split('@')[0], googleUser.name || googleUser.email, googleUser.picture || null, true, 'pending']
       );
       userId = createResult.rows[0].id;
       console.log('✅ Created user:', userId);
