@@ -1168,6 +1168,7 @@ export default function MarketplaceDemoPage() {
   const [newCampaignReqInput, setNewCampaignReqInput] = useState('');
   const [newCampaignCreatorCount, setNewCampaignCreatorCount] = useState(1);
   const [newCampaignValueskin, setNewCampaignValueskin] = useState<ValueSkinSlot>('profession');
+  const [newCampaignValueskin, setNewCampaignValueskin] = useState<ValueSkinSlot>('profession');
 
   // Campaign POC (Point of Contact) fields
   const [newCampaignPocName, setNewCampaignPocName] = useState('');
@@ -1652,9 +1653,8 @@ export default function MarketplaceDemoPage() {
   // Check if creator matches campaign requirements
   const creatorMatchesCampaignRequirements = (campaign: Campaign, creatorProfession: string, creatorData?: any): boolean => {
     // Must have matching profession
-    if (!campaign.requiredProfessions.includes(creatorProfession)) return false;
-    // Must match required valueskin
     if (campaign.requiredValueskin && campaign.requiredValueskin !== creatorProfession) return false;
+    if (!campaign.requiredProfessions.includes(creatorProfession)) return false;
 
     // If creator data provided, check other requirements
     if (creatorData) {
@@ -2938,7 +2938,6 @@ export default function MarketplaceDemoPage() {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <a href={opp.brandWebsiteUrl || `https://portfolio.valueskins.com/${opp.brand.replace(/\s+/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: '15px', fontWeight: 700, color: C.text, textDecoration: 'none', display: 'block' }}>{opp.brand}</a>
                                   <div style={{ fontSize: '13px', color: C.textSecondary }}>{opp.type}</div>
-                                  <div style={{ fontSize: '12px'  color: C.textMuted }}>Seeking: <span style={{ fontWeight: 700, color: C.primary }}>{opp.requiredValueskin?.charAt(0).toUpperCase()}{opp.requiredValueskin?.slice(1)}</span></div>
                                 </div>
                                 <div style={{ fontSize: '14px', fontWeight: 700, color: C.primary }}>{opp.match}</div>
                               </div>
