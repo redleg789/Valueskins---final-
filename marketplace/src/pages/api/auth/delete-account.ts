@@ -1,54 +1,39 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '@/lib/db';
+import { queryOne, query } from '@/lib/db-pool';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const userIdHeader = req.headers['x-user-id'];
-  if (!userIdHeader || typeof userIdHeader !== 'string') {
-    return res.status(401).json({ error: 'Unauthorized: Missing user ID' });
-  }
-
-  const userId = parseInt(userIdHeader, 10);
-  if (isNaN(userId)) {
-    return res.status(401).json({ error: 'Invalid user ID' });
-  }
-
   try {
-    const { confirmationPhrase } = req.body;
+    const sessionToken = req.cookies.valueskins_session;
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
 
-    // Verify user exists
-    const userCheck = await query(
-      'SELECT id FROM users WHERE id = $1',
-      [userId]
+    // Get user from session
+    const session = await queryOne(
+      'SELECT user_id FROM auth_sessions WHERE id = $1 AND is_active = TRUE',
+      [sessionToken]
     );
 
-    if (userCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    if (!session) {
+      return res.status(401).json({ error: 'Session invalid' });
     }
 
-    // Require confirmation phrase to prevent accidental deletion
-    if (confirmationPhrase !== 'PERMANENTLY DELETE MY ACCOUNT') {
-      return res.status(400).json({ error: 'Invalid confirmation phrase' });
-    }
+    const userId = session.user_id;
 
-    // Delete user data (cascade will handle related records)
+    // Delete all user data
+    await query('DELETE FROM auth_sessions WHERE user_id = $1', [userId]);
     await query('DELETE FROM users WHERE id = $1', [userId]);
 
-    console.log(`[delete-account] User ${userId} permanently deleted their account`);
+    // Clear session cookie
+    res.setHeader('Set-Cookie', 'valueskins_session=; HttpOnly; Path=/; Max-Age=0');
 
-    return res.status(200).json({
-      success: true,
-      message: 'Account permanently deleted',
-      timestamp: new Date().toISOString()
-    });
-  } catch (err: any) {
-    console.error('[delete-account] Error:', {
-      userId: req.headers['x-user-id'],
-      message: err.message,
-    });
+    return res.status(200).json({ success: true, message: 'Account deleted' });
+  } catch (error) {
+    console.error('Delete account error:', error);
     return res.status(500).json({ error: 'Failed to delete account' });
   }
 }
