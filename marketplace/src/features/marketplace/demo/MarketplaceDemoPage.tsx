@@ -176,6 +176,7 @@ export default function MarketplaceDemoPage() {
   const isBrand = userRole === 'brand';
   const isCreator = userRole === 'creator';
   const roleNotSet = !userRole;
+
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
       if (p === '/feed' || p === '/demo/marketplace' || p === '/') return 'mim';
