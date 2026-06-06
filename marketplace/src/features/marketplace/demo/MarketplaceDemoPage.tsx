@@ -169,6 +169,7 @@ const MOCK_REPUTATION = {
 };
 
 export default function MarketplaceDemoPage() {
+  const { account, loading } = useAuth();
   const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
@@ -198,7 +199,13 @@ export default function MarketplaceDemoPage() {
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
 
   // Editable profile
-  const [profileName, setProfileName] = useState(account?.display_name || '');
+  const [profileName, setProfileName] = useState('');
+
+  useEffect(() => {
+    if (account?.display_name) {
+      setProfileName(account.display_name);
+    }
+  }, [account]);
   const [profileBio, setProfileBio] = useState('');
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
