@@ -1,8 +1,6 @@
-import crypto from 'crypto';
-
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const GOOGLE_REDIRECT_URI = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || 'https://valueskins-final.vercel.app/api/oauth/google/callback';
+const GOOGLE_REDIRECT_URI = process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/oauth/google/callback';
 
 // Debug logging
 if (typeof window !== 'undefined' && !GOOGLE_CLIENT_ID) {
@@ -16,8 +14,19 @@ const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || '';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 const GITHUB_REDIRECT_URI = process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI || 'http://localhost:3000/api/oauth/github/callback';
 
+function randomState(): string {
+  const arr = new Uint8Array(32);
+  if (typeof window !== 'undefined' && window.crypto) {
+    window.crypto.getRandomValues(arr);
+  } else {
+    // Server-side fallback
+    for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function getGoogleAuthUrl(customState?: string): string {
-  const state = customState || crypto.randomBytes(32).toString('hex');
+  const state = customState || randomState();
   const scope = 'openid profile email';
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -36,7 +45,7 @@ export function getGoogleAuthUrl(customState?: string): string {
 }
 
 export function getGitHubAuthUrl(): string {
-  const state = crypto.randomBytes(32).toString('hex');
+  const state = randomState();
   const scope = 'user:email';
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
