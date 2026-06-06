@@ -12,6 +12,8 @@ interface GoogleUser {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('🔐 Callback hit! Method:', req.method, 'Query:', req.query);
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -19,74 +21,80 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { code, error } = req.query;
 
   if (error) {
+    console.log('❌ Google error:', error);
     return res.redirect(`/?error=${error}`);
   }
 
   if (!code || typeof code !== 'string') {
-    return res.status(400).redirect('/?error=missing_code');
+    console.log('❌ Missing code');
+    return res.status(400).json({ error: 'Missing code' });
   }
 
   try {
-    // Exchange code for tokens
+    console.log('🔄 Exchanging code for tokens...');
     const tokens = await exchangeGoogleCode(code);
     if (!tokens.access_token) {
-      return res.status(400).redirect('/?error=token_failed');
+      console.log('❌ No access token');
+      return res.status(400).json({ error: 'token_failed' });
     }
 
-    // Get user info
+    console.log('✅ Got tokens');
     const googleUser = (await getGoogleUserInfo(tokens.access_token)) as GoogleUser;
+    console.log('✅ Got user:', googleUser.email);
+
     if (!googleUser.email) {
-      return res.status(400).redirect('/?error=no_email');
+      console.log('❌ No email');
+      return res.status(400).json({ error: 'no_email' });
     }
 
-    // Find or create user
     let userId: string;
-
-    // Try by google_id first
     let result = await query('SELECT id FROM users WHERE google_id = $1', [googleUser.sub]);
 
     if (result.rows.length > 0) {
       userId = result.rows[0].id;
-      // Update timestamp
+      console.log('✅ Found user by google_id:', userId);
       await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
     } else {
-      // Try by email
       result = await query('SELECT id FROM users WHERE email = $1 AND is_deleted = FALSE', [googleUser.email]);
 
       if (result.rows.length > 0) {
         userId = result.rows[0].id;
-        // Link google_id
+        console.log('✅ Found user by email:', userId);
         await query('UPDATE users SET google_id = $1, updated_at = NOW() WHERE id = $2', [googleUser.sub, userId]);
       } else {
-        // Create new user
+        console.log('🆕 Creating new user for:', googleUser.email);
         const createResult = await query(
           'INSERT INTO users (email, display_name, avatar_url, google_id) VALUES ($1, $2, $3, $4) RETURNING id',
           [googleUser.email, googleUser.name || googleUser.email, googleUser.picture || null, googleUser.sub]
         );
         userId = createResult.rows[0].id;
+        console.log('✅ Created user:', userId);
 
-        // Create account
         await query('INSERT INTO accounts (user_id) VALUES ($1)', [userId]);
       }
     }
 
-    // Create session
     const sessionId = generateUUID();
     const expiresAt = new Date(Date.now() + COOKIE_MAX_AGE * 1000);
 
+    console.log('🔐 Creating session:', sessionId);
     await query(
       'INSERT INTO auth_sessions (id, user_id, is_active, expires_at) VALUES ($1, $2, $3, $4)',
       [sessionId, userId, true, expiresAt]
     );
 
-    // Set secure cookie
-    res.setHeader('Set-Cookie', `valueskins_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`);
+    const cookieStr = `valueskins_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
+    res.setHeader('Set-Cookie', cookieStr);
+    console.log('✅ Session created and cookie set');
 
-    // Redirect to home
+    console.log('🚀 Redirecting to /');
     return res.redirect('/');
   } catch (error) {
-    console.error('OAuth callback error:', error);
-    return res.status(500).redirect('/?error=auth_failed');
+    console.error('❌ OAuth callback error:', error);
+    return res.status(500).json({
+      error: 'auth_failed',
+      details: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
