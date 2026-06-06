@@ -6,6 +6,7 @@
 // OUTPUT: Interactive UI where creators browse offers and negotiate with brands
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { useLevelConfig, useReputationConfig } from '@/lib/useConfigStorage';
 import { useDealSync, type DealState, type DealRoomPhase, type SharedApplication, type Campaign, type ChatMessage } from '@/features/valueskins/core/deals/useDealSync';
