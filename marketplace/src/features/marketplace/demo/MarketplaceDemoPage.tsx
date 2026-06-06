@@ -173,7 +173,6 @@ export default function MarketplaceDemoPage() {
   const { account, loading } = useAuth();
   const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
   const isBrand = account?.modules?.some(m => m.code === 'brand' && m.is_active) ?? false;
-  const isCreator = account?.modules?.some(m => m.code === 'valueskin' && m.is_active) ?? false;
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
       if (p === '/feed' || p === '/demo/marketplace' || p === '/') return 'mim';
@@ -209,15 +208,6 @@ export default function MarketplaceDemoPage() {
       setProfileName(account.display_name);
     }
 
-  // Load saved valueskin selection
-  useEffect(() => {
-    if (isCreator && account) {
-      const savedSkin = localStorage.getItem(`creator_selected_skin_${account.id}`);
-      if (savedSkin && ['profession', 'passion', 'hobby'].includes(savedSkin)) {
-        setSelectedMarketplaceSkin(savedSkin as ValueSkinSlot);
-      }
-    }
-  }, [isCreator, account]);
   }, [account]);
   const [profileBio, setProfileBio] = useState('');
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
