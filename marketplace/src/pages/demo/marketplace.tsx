@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/router';
 import { useAuth } from '@/context/AuthContext';
+import { useEffect, useState } from 'react';
 import MarketplaceDemoPage from '@/features/marketplace/demo/MarketplaceDemoPage';
 
 const C = {
@@ -15,23 +16,24 @@ const C = {
 export default function DemoWrapper() {
   const router = useRouter();
   const { account, loading } = useAuth();
-  const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  const [isLocalhost, setIsLocalhost] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsLocalhost(window.location.hostname === 'localhost');
+    setIsMounted(true);
+  }, []);
 
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', flexDirection: 'column', gap: '20px' }}>
         <div>Loading...</div>
-        {isLocalhost && (
-          <button onClick={() => window.location.reload()} style={{ padding: '10px 20px', background: C.accent, border: 'none', borderRadius: '6px', color: '#000', fontWeight: '600', cursor: 'pointer' }}>
-            Skip to Demo
-          </button>
-        )}
       </div>
     );
   }
 
   if (!account) {
-    if (isLocalhost) {
+    if (isMounted && isLocalhost) {
       return (
         <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', flexDirection: 'column', gap: '20px' }}>
           <div style={{ fontSize: '18px', fontWeight: '600' }}>Not logged in</div>
