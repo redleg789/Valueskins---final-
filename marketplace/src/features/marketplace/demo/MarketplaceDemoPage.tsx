@@ -172,6 +172,8 @@ const MOCK_REPUTATION = {
 export default function MarketplaceDemoPage() {
   const { account, loading } = useAuth();
   const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
+  const isBrand = account?.modules?.some(m => m.code === 'brand' && m.is_active) ?? false;
+  const isCreator = account?.modules?.some(m => m.code === 'valueskin' && m.is_active) ?? false;
     if (typeof window !== 'undefined') {
       const p = window.location.pathname;
       if (p === '/feed' || p === '/demo/marketplace' || p === '/') return 'mim';
@@ -206,6 +208,16 @@ export default function MarketplaceDemoPage() {
     if (account?.display_name) {
       setProfileName(account.display_name);
     }
+
+  // Load saved valueskin selection
+  useEffect(() => {
+    if (isCreator && account) {
+      const savedSkin = localStorage.getItem(`creator_selected_skin_${account.id}`);
+      if (savedSkin && ['profession', 'passion', 'hobby'].includes(savedSkin)) {
+        setSelectedMarketplaceSkin(savedSkin as ValueSkinSlot);
+      }
+    }
+  }, [isCreator, account]);
   }, [account]);
   const [profileBio, setProfileBio] = useState('');
   const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
@@ -2751,7 +2763,7 @@ export default function MarketplaceDemoPage() {
                         return (
                           <button
                             key={skin}
-                            onClick={() => { setSelectedMarketplaceSkin(skin); setNegotiatingOpp(null); }}
+                            onClick={() => { setSelectedMarketplaceSkin(skin); if (isCreator && account) localStorage.setItem(`creator_selected_skin_${account.id}`, skin);; setNegotiatingOpp(null); }}
                             style={{
                               padding: '7px 16px', borderRadius: '20px', border: 'none', whiteSpace: 'nowrap',
                               background: isActive ? C.text : C.card,
@@ -2800,7 +2812,7 @@ export default function MarketplaceDemoPage() {
                     )}
 
                     {/* No skin selected prompt */}
-                    {!selectedMarketplaceSkin && (
+                    {!selectedMarketplaceSkin && isCreator && (
                       <div style={{ textAlign: 'center', padding: '40px 20px' }}>
                         <div style={{ fontSize: '14px', color: C.textSecondary, lineHeight: 1.6 }}>
                           Select a category above to see opportunities matched to your ValueSkins.
