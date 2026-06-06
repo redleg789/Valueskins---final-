@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '@/lib/db-pool';
+import { query } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -7,30 +7,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const userId = req.headers['x-user-id'] || req.body.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'User ID required' });
+    const sessionToken = req.cookies.valueskins_session;
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { role } = req.body;
-
-    // Update onboarding_stage to 'complete'
-    await query(
-      'UPDATE users SET onboarding_stage = $1 WHERE id = $2',
-      ['complete', userId]
+    // Get user from session
+    const sessionResult = await query(
+      'SELECT user_id FROM auth_sessions WHERE id = $1 AND is_active = true',
+      [sessionToken]
     );
 
-    // If role is provided, update it too
-    if (role) {
-      await query(
-        'UPDATE users SET role = $1 WHERE id = $2',
-        [role, userId]
-      );
+    if (sessionResult.rows.length === 0) {
+      return res.status(401).json({ error: 'Session invalid' });
     }
 
-    return res.status(200).json({ success: true, message: 'Onboarding completed' });
+    const userId = sessionResult.rows[0].user_id;
+    const { role } = req.body;
+
+    if (!role || !['brand', 'creator'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    // Save role and mark onboarding complete
+    await query(
+      'UPDATE users SET role = $1, onboarding_stage = $2 WHERE id = $3',
+      [role, 'complete', userId]
+    );
+
+    return res.status(200).json({ success: true, role });
   } catch (error) {
-    console.error('Onboarding completion error:', error);
+    console.error('Onboarding complete error:', error);
     return res.status(500).json({ error: 'Failed to complete onboarding' });
   }
 }

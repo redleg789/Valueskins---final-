@@ -1,131 +1,80 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { C } from '@/theme/colors';
 
-interface Preference {
-  id: string;
-  label: string;
-  description: string;
-  icon: string;
-}
-
-const PREFERENCES: Preference[] = [
-  { id: 'attend_events', label: 'Attend events', description: 'Browse and buy tickets to events near you', icon: '🎟️' },
-  { id: 'host_events', label: 'Host events', description: 'Create and manage your own events', icon: '🎤' },
-  { id: 'discover_people', label: 'Discover people', description: 'Network and connect with the community', icon: '🤝' },
-  { id: 'build_valueskin', label: 'Build ValueSkin', description: 'Create a creator profile for brand deals', icon: '⭐' },
-  { id: 'find_creators', label: 'Find creators', description: 'Discover creators for brand collaborations', icon: '🔍' },
-  { id: 'explore', label: 'Explore', description: 'See what ValueSkins has to offer', icon: '🧭' },
-];
-
 export default function Onboarding() {
   const router = useRouter();
-  const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Redirect if already completed
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        if (data?.onboarding_stage === 'complete') {
-          router.replace('/');
-        }
-      })
-      .catch(() => {});
-  }, [router]);
-
-  const toggle = (id: string) => {
-    setSelected(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleContinue = async () => {
-    if (selected.length === 0) return;
+  const handleSelect = async (role: 'brand' | 'creator') => {
     setLoading(true);
-
+    setError('');
     try {
-      const res = await fetch('/api/account/preferences', {
+      // Save role + complete onboarding in one call
+      const res = await fetch('/api/auth/onboarding-complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ preferences: selected }),
+        body: JSON.stringify({ role }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to save preferences');
+        const d = await res.json();
+        throw new Error(d.error || 'Failed');
       }
 
-      router.push('/');
+      // Hard redirect to home — AuthContext will re-fetch account with new role
+      window.location.href = '/';
     } catch (err: any) {
-      console.error(err);
-      // Continue anyway
-      router.push('/');
-    } finally {
+      setError(err.message);
       setLoading(false);
     }
   };
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto' }}>
-      <div style={{ width: '100%', maxWidth: '600px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>What brings you here?</div>
-          <p style={{ fontSize: '15px', color: C.textSecondary }}>
-            Pick what sounds interesting. You can change this later.
-          </p>
+      <div style={{ width: '100%', maxWidth: '520px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 800, color: C.text, marginBottom: '12px' }}>Welcome to ValueSkins</div>
+          <div style={{ fontSize: '16px', color: C.textSecondary }}>How do you want to use ValueSkins?</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
-          {PREFERENCES.map(pref => {
-            const isSelected = selected.includes(pref.id);
-            return (
-              <button
-                key={pref.id}
-                onClick={() => toggle(pref.id)}
-                style={{
-                  padding: '20px',
-                  border: `2px solid ${isSelected ? C.primary : C.border}`,
-                  borderRadius: '12px',
-                  background: isSelected ? 'rgba(103, 91, 100, 0.1)' : C.bg,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.2s',
-                }}
-              >
-                <div style={{ fontSize: '28px', marginBottom: '8px' }}>{pref.icon}</div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: C.text, marginBottom: '4px' }}>{pref.label}</div>
-                <div style={{ fontSize: '12px', color: C.textSecondary, lineHeight: 1.4 }}>{pref.description}</div>
-              </button>
-            );
-          })}
-        </div>
+        {error && (
+          <div style={{ padding: '10px 14px', background: '#fef2f2', color: '#ef4444', borderRadius: '8px', fontSize: '13px', marginBottom: '20px', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
 
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '13px', color: C.textSecondary, marginBottom: '16px' }}>
-            Selected {selected.length} of {PREFERENCES.length}. You can always change these later in settings.
-          </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <button
-            onClick={handleContinue}
-            disabled={loading || selected.length === 0}
-            style={{
-              width: '100%',
-              maxWidth: '300px',
-              padding: '14px',
-              background: selected.length === 0 ? C.border : C.primary,
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '15px',
-              fontWeight: 600,
-              cursor: selected.length === 0 ? 'not-allowed' : 'pointer',
-            }}
+            onClick={() => handleSelect('creator')}
+            disabled={loading}
+            style={{ padding: '32px 20px', border: `2px solid ${C.border}`, borderRadius: '16px', background: C.surface, cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'center', transition: 'all 0.2s', opacity: loading ? 0.6 : 1 }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = C.primary)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
           >
-            {loading ? 'Saving...' : 'Continue'}
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎨</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>I'm a Creator</div>
+            <div style={{ fontSize: '13px', color: C.textSecondary, lineHeight: 1.5 }}>Apply to brand campaigns, showcase your content, and get paid for your influence.</div>
           </button>
+
+          <button
+            onClick={() => handleSelect('brand')}
+            disabled={loading}
+            style={{ padding: '32px 20px', border: `2px solid ${C.border}`, borderRadius: '16px', background: C.surface, cursor: loading ? 'not-allowed' : 'pointer', textAlign: 'center', transition: 'all 0.2s', opacity: loading ? 0.6 : 1 }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = C.primary)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = C.border)}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>🏢</div>
+            <div style={{ fontSize: '18px', fontWeight: 700, color: C.text, marginBottom: '8px' }}>I'm a Brand</div>
+            <div style={{ fontSize: '13px', color: C.textSecondary, lineHeight: 1.5 }}>Create campaigns, find the right creators, and grow your brand through authentic content.</div>
+          </button>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '12px', color: C.textMuted }}>
+          {loading ? 'Setting up your account...' : 'You can always contact support to change this later.'}
         </div>
       </div>
     </div>
