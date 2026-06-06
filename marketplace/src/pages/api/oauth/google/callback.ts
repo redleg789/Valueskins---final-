@@ -1,109 +1,99 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '@/lib/db';
 import { exchangeGoogleCode, getGoogleUserInfo } from '@/lib/oauth';
+import { query } from '@/lib/db';
+
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
+
+interface GoogleUser {
+  sub: string;
+  email: string;
+  name?: string;
+  picture?: string;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { code, state, error, error_description } = req.query;
+  const { code, error } = req.query;
 
-  // Handle OAuth errors from Google
   if (error) {
-    console.error('Google OAuth error:', error, error_description);
-    return res.redirect(`/?error=${error}&error_description=${error_description}`);
+    return res.redirect(`/?error=${error}`);
   }
 
   if (!code || typeof code !== 'string') {
-    return res.redirect('/?error=missing_code');
+    return res.status(400).redirect('/?error=missing_code');
   }
 
   try {
-    // Exchange authorization code for tokens
+    // Exchange code for tokens
     const tokens = await exchangeGoogleCode(code);
-
     if (!tokens.access_token) {
-      return res.redirect('/?error=no_access_token');
+      return res.status(400).redirect('/?error=token_failed');
     }
 
-    // Get user info from Google
-    const googleUser = await getGoogleUserInfo(tokens.access_token);
-
+    // Get user info
+    const googleUser = (await getGoogleUserInfo(tokens.access_token)) as GoogleUser;
     if (!googleUser.email) {
-      return res.redirect('/?error=no_email');
+      return res.status(400).redirect('/?error=no_email');
     }
 
     // Find or create user
-    const existingUser = await query(
-      'SELECT id, account_id FROM users WHERE instagram_user_id = $1',
-      [googleUser.email]
-    );
+    let userId: string;
 
-    let userId: number;
-    let accountId: number;
+    // Try by google_id first
+    let result = await query('SELECT id FROM users WHERE google_id = $1', [googleUser.sub]);
 
-    if (existingUser.rows.length > 0) {
-      userId = existingUser.rows[0].id;
-      accountId = existingUser.rows[0].account_id;
+    if (result.rows.length > 0) {
+      userId = result.rows[0].id;
+      // Update timestamp
+      await query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
     } else {
-      // Create new account and user
-      const accountResult = await query(
-        `INSERT INTO accounts (display_name, email)
-         VALUES ($1, $2)
-         RETURNING id`,
-        [googleUser.name || googleUser.email, googleUser.email]
-      );
-      accountId = accountResult.rows[0].id;
+      // Try by email
+      result = await query('SELECT id FROM users WHERE email = $1 AND is_deleted = FALSE', [googleUser.email]);
 
-      const userResult = await query(
-        `INSERT INTO users (instagram_user_id, username, display_name, avatar_url, role, account_id)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id`,
-        [
-          googleUser.email,
-          googleUser.email.split('@')[0],
-          googleUser.name || googleUser.email,
-          googleUser.picture || null,
-          'creator',
-          accountId,
-        ]
-      );
-      userId = userResult.rows[0].id;
+      if (result.rows.length > 0) {
+        userId = result.rows[0].id;
+        // Link google_id
+        await query('UPDATE users SET google_id = $1, updated_at = NOW() WHERE id = $2', [googleUser.sub, userId]);
+      } else {
+        // Create new user
+        const createResult = await query(
+          'INSERT INTO users (email, display_name, avatar_url, google_id) VALUES ($1, $2, $3, $4) RETURNING id',
+          [googleUser.email, googleUser.name || googleUser.email, googleUser.picture || null, googleUser.sub]
+        );
+        userId = createResult.rows[0].id;
+
+        // Create account
+        await query('INSERT INTO accounts (user_id) VALUES ($1)', [userId]);
+      }
     }
 
     // Create session
-    const crypto = require('crypto');
-    const sessionToken = `google_${crypto.randomBytes(16).toString('hex')}`;
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const sessionId = generateUUID();
+    const expiresAt = new Date(Date.now() + COOKIE_MAX_AGE * 1000);
 
-    await ensureAuthSessions();
     await query(
-      'INSERT INTO auth_sessions (id, user_id, expires_at) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING',
-      [sessionToken, userId, expiresAt]
+      'INSERT INTO auth_sessions (id, user_id, is_active, expires_at) VALUES ($1, $2, $3, $4)',
+      [sessionId, userId, true, expiresAt]
     );
 
-    // Set session cookie
-    res.setHeader('Set-Cookie', [
-      `valueskins_session=${sessionToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}; Secure`,
-    ]);
+    // Set secure cookie
+    res.setHeader('Set-Cookie', `valueskins_session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`);
 
-    // Redirect to home or onboarding
+    // Redirect to home
     return res.redirect('/demo/instagram');
   } catch (error) {
     console.error('OAuth callback error:', error);
-    return res.redirect(`/?error=callback_error&message=${encodeURIComponent(String(error))}`);
+    return res.status(500).redirect('/?error=auth_failed');
   }
 }
 
-async function ensureAuthSessions() {
-  await query(`
-    CREATE TABLE IF NOT EXISTS auth_sessions (
-      id TEXT PRIMARY KEY,
-      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      expires_at TIMESTAMPTZ NOT NULL,
-      is_active BOOLEAN NOT NULL DEFAULT TRUE
-    )
-  `);
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
