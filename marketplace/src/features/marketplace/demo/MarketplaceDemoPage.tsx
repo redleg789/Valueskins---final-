@@ -1187,6 +1187,11 @@ export default function MarketplaceDemoPage() {
   const [newCampaignReqInput, setNewCampaignReqInput] = useState('');
   const [newCampaignCreatorCount, setNewCampaignCreatorCount] = useState(1);
   const [newCampaignValueskin, setNewCampaignValueskin] = useState<ValueSkinSlot>('profession');
+  const [newCampaignPostsCount, setNewCampaignPostsCount] = useState(0);
+  const [newCampaignReelsCount, setNewCampaignReelsCount] = useState(0);
+  const [newCampaignStoriesCount, setNewCampaignStoriesCount] = useState(0);
+  const [newCampaignPocEmail, setNewCampaignPocEmail] = useState('');
+  const [newCampaignPocPhone, setNewCampaignPocPhone] = useState('');
 
   // Campaign POC (Point of Contact) fields
   const [newCampaignPocName, setNewCampaignPocName] = useState('');
