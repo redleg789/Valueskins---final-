@@ -237,7 +237,7 @@ export default function MarketplaceDemoPage() {
       })
       .catch(() => setHostedEvents([]))
       .finally(() => setHostedEventsLoading(false));
-  }, [activeView, isBrand, ownedSkins.length]);
+  }, [activeView, isBrand, valueSkins]);
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
