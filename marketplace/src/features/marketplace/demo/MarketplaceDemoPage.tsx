@@ -214,6 +214,30 @@ export default function MarketplaceDemoPage() {
 
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  // ── Work History: hosted events ──────────────────────────────────
+  const [hostedEvents, setHostedEvents] = useState<Array<{ id: number; title: string; date: string; location: string; attendeeCount: number; status: string; category: string }>>([]);
+  const [hostedEventsLoading, setHostedEventsLoading] = useState(false);
+  useEffect(() => {
+    if (activeView !== 'profile' || isBrand || ownedSkins.length === 0) return;
+    setHostedEventsLoading(true);
+    fetch('/api/events/hosted', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { events: [] })
+      .then(data => {
+        const evts = (data.events || []).map((e: any) => ({
+          id: e.id,
+          title: e.form?.title || e.title || 'Untitled Event',
+          date: e.form?.eventDate || e.eventDate || '',
+          location: e.form?.location || e.location || '',
+          attendeeCount: e.attendees?.length ?? e.attendeeCount ?? 0,
+          status: e.visibilityStatus || e.status || 'active',
+          category: e.form?.category || e.category || '',
+        }));
+        setHostedEvents(evts);
+      })
+      .catch(() => setHostedEvents([]))
+      .finally(() => setHostedEventsLoading(false));
+  }, [activeView, isBrand, ownedSkins.length]);
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
@@ -2246,6 +2270,42 @@ export default function MarketplaceDemoPage() {
                                 <div style={{ fontSize: '11px', color: C.textMuted }}>Level {level} · {slot}</div>
                               </div>
                               <div style={{ padding: '4px 10px', borderRadius: '20px', background: C.primary + '22', color: C.primary, fontSize: '12px', fontWeight: 700 }}>Lv.{level}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Work History — creators with at least one skin */}
+                {!isBrand && ownedSkins.length > 0 && (
+                  <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '16px', padding: '20px', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: C.textMuted, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Work History</div>
+                    {hostedEventsLoading ? (
+                      <div style={{ fontSize: '13px', color: C.textMuted, textAlign: 'center', padding: '16px 0' }}>Loading…</div>
+                    ) : hostedEvents.length === 0 ? (
+                      <div style={{ fontSize: '13px', color: C.textMuted, textAlign: 'center', padding: '16px 0' }}>
+                        No hosted events yet. <button onClick={() => setActiveView('events')} style={{ background: 'none', border: 'none', color: C.primary, fontWeight: 600, cursor: 'pointer', fontSize: '13px', padding: 0 }}>Host one →</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {hostedEvents.map(ev => {
+                          const isLive = ev.status === 'active';
+                          const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                          return (
+                            <div key={ev.id} style={{ padding: '12px', background: C.bg, borderRadius: '10px', border: `1px solid ${C.border}` }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                                <div style={{ fontSize: '14px', fontWeight: 700, color: C.text, flex: 1, marginRight: '8px' }}>{ev.title}</div>
+                                <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 700, background: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.1)', color: isLive ? '#22c55e' : C.textMuted, flexShrink: 0 }}>
+                                  {isLive ? 'Live' : 'Ended'}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: C.textMuted }}>
+                                <span>📅 {dateStr}</span>
+                                {ev.location && <span>📍 {ev.location}</span>}
+                                <span>👥 {ev.attendeeCount} attendees</span>
+                              </div>
                             </div>
                           );
                         })}
@@ -9536,7 +9596,6 @@ export default function MarketplaceDemoPage() {
               key={view}
               onClick={() => {
                 if (view === 'mim') { setMarketplaceRole('none'); }
-                if (view === 'messages') { setActiveCommunity(null); setActiveDmId(null); }
                 setActiveView(view);
               }}
               style={{
