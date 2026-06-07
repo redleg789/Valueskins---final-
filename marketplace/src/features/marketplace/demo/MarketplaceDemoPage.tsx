@@ -218,26 +218,6 @@ export default function MarketplaceDemoPage() {
   // ── Work History: hosted events ──────────────────────────────────
   const [hostedEvents, setHostedEvents] = useState<Array<{ id: number; title: string; date: string; location: string; attendeeCount: number; status: string; category: string }>>([]);
   const [hostedEventsLoading, setHostedEventsLoading] = useState(false);
-  useEffect(() => {
-    if (activeView !== 'profile' || isBrand || ownedSkins.length === 0) return;
-    setHostedEventsLoading(true);
-    fetch('/api/events/hosted', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : { events: [] })
-      .then(data => {
-        const evts = (data.events || []).map((e: any) => ({
-          id: e.id,
-          title: e.form?.title || e.title || 'Untitled Event',
-          date: e.form?.eventDate || e.eventDate || '',
-          location: e.form?.location || e.location || '',
-          attendeeCount: e.attendees?.length ?? e.attendeeCount ?? 0,
-          status: e.visibilityStatus || e.status || 'active',
-          category: e.form?.category || e.category || '',
-        }));
-        setHostedEvents(evts);
-      })
-      .catch(() => setHostedEvents([]))
-      .finally(() => setHostedEventsLoading(false));
-  }, [activeView, isBrand, valueSkins]);
   const [activeTab, setActiveTab] = useState('posts');
   const [isFollowing, setIsFollowing] = useState(false);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
@@ -1093,7 +1073,7 @@ export default function MarketplaceDemoPage() {
   const [showAudienceFilters, setShowAudienceFilters] = useState(false);
 
   // Rate card
-  const [rateCard, setRateCard] = useState({ reel: '4500', story: '1200', post: '2800', podcast: '3500', live: '6000' });
+  const [rateCard, setRateCard] = useState({ reel: '', story: '', post: '', podcast: '', live: '' });
   const [creatorAvailableFrom, setCreatorAvailableFrom] = useState('2026-03-01');
   const [creatorMaxActiveDeals, setCreatorMaxActiveDeals] = useState(3);
   const [contractMode, setContractMode] = useState<'one-off' | 'long-term' | 'both'>('both');
@@ -1431,9 +1411,31 @@ export default function MarketplaceDemoPage() {
   const [levelUpTo, setLevelUpTo] = useState(2);
 
   const [metrics, setMetrics] = useState({
-    followers: 1243000, engagement: 6.8, dealsCompleted: 47,
-    avgDealValue: 85000, onTimeRate: 99, brandRating: 4.87,
+    followers: 0, engagement: 0, dealsCompleted: 0,
+    avgDealValue: 0, onTimeRate: 0, brandRating: 0,
   });
+
+  // Fetch hosted events when profile view is active and user has ValueSkins
+  useEffect(() => {
+    if (activeView !== 'profile' || isBrand || Object.keys(valueSkins).length === 0) return;
+    setHostedEventsLoading(true);
+    fetch('/api/events/hosted', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { events: [] })
+      .then(data => {
+        const evts = (data.events || []).map((e: any) => ({
+          id: e.id,
+          title: e.form?.title || e.title || 'Untitled Event',
+          date: e.form?.eventDate || e.eventDate || '',
+          location: e.form?.location || e.location || '',
+          attendeeCount: e.attendees?.length ?? e.attendeeCount ?? 0,
+          status: e.visibilityStatus || e.status || 'active',
+          category: e.form?.category || e.category || '',
+        }));
+        setHostedEvents(evts);
+      })
+      .catch(() => setHostedEvents([]))
+      .finally(() => setHostedEventsLoading(false));
+  }, [activeView, isBrand, valueSkins]);
 
   // Persist state to localStorage — must be declared after ALL state variables it references
   useEffect(() => {
