@@ -76,8 +76,8 @@ export default function HomePage() {
           />
 
           <DashboardCard
-            title="Profile"
-            desc="Manage your account & settings"
+            title="Preferences"
+            desc="Set your availability, rates & pitch"
             link="/profile/me"
             color="#10b981"
           />

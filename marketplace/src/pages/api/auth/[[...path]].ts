@@ -72,6 +72,28 @@ async function runMigrations() {
   try {
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_stage TEXT DEFAULT 'complete'`);
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT`);
+    // Creator preferences fields
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS location TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS instagram_handle TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tiktok_handle TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS youtube_handle TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS twitter_handle TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS linkedin_handle TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS website TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS niche TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS languages JSONB DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS followers_count INTEGER DEFAULT 0`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS engagement_rate DECIMAL DEFAULT 0`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS open_for_work BOOLEAN DEFAULT true`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS min_deal_value INTEGER DEFAULT 500`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_deal_types JSONB DEFAULT '["paid"]'::jsonb`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS availability TEXT DEFAULT 'available'`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS response_time TEXT DEFAULT '24'`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pitch_video_url TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS pitch_text TEXT`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS portfolio_items JSONB DEFAULT '[]'::jsonb`);
     migrated = true;
   } catch {}
 }

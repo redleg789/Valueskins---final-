@@ -22,7 +22,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === 'GET') {
       const profileResult = await query(
-        `SELECT display_name, username, bio, location FROM users WHERE id = $1`,
+        `SELECT
+          display_name, username, bio, location, country,
+          instagram_handle, tiktok_handle, youtube_handle, twitter_handle, linkedin_handle,
+          website, followers_count, engagement_rate, niche,
+          languages, open_for_work, min_deal_value, preferred_deal_types,
+          availability, response_time, pitch_video_url, pitch_text,
+          portfolio_items
+        FROM users WHERE id = $1`,
         [userId]
       );
 
@@ -34,14 +41,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'PUT' || req.method === 'PATCH') {
-      const { display_name, username } = req.body;
+      const {
+        display_name, username, bio, location, country,
+        instagram_handle, tiktok_handle, youtube_handle, twitter_handle, linkedin_handle,
+        website, niche, languages, open_for_work, min_deal_value, preferred_deal_types,
+        availability, response_time, pitch_video_url, pitch_text
+      } = req.body;
 
-      await query(
-        `UPDATE users SET display_name = COALESCE($1, display_name), username = COALESCE($2, username), updated_at = NOW() WHERE id = $3`,
-        [display_name, username, userId]
-      );
+      // Build UPDATE query dynamically to handle optional fields
+      const updates = [];
+      const params = [];
+      let paramCount = 1;
 
-      return res.status(200).json({ message: 'Profile updated' });
+      const fields = {
+        display_name, username, bio, location, country,
+        instagram_handle, tiktok_handle, youtube_handle, twitter_handle, linkedin_handle,
+        website, niche, languages, open_for_work, min_deal_value, preferred_deal_types,
+        availability, response_time, pitch_video_url, pitch_text
+      };
+
+      for (const [key, value] of Object.entries(fields)) {
+        if (value !== undefined && value !== null) {
+          updates.push(`${key} = $${paramCount}`);
+          params.push(value);
+          paramCount++;
+        }
+      }
+
+      updates.push(`updated_at = NOW()`);
+      params.push(userId);
+
+      if (updates.length === 1) {
+        // Only updated_at changed
+        updates.pop(); // remove the NOW() addition
+        await query(`UPDATE users SET updated_at = NOW() WHERE id = $1`, [userId]);
+      } else {
+        await query(
+          `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount}`,
+          params
+        );
+      }
+
+      return res.status(200).json({ message: 'Profile updated', userId });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
