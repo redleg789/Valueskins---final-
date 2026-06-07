@@ -82,13 +82,6 @@ export default function HomePage() {
             color="#10b981"
           />
 
-          <DashboardCard
-            title="Settings"
-            desc="Configure your preferences"
-            link="/account/settings"
-            color="#6366f1"
-          />
-
         </div>
 
       </div>

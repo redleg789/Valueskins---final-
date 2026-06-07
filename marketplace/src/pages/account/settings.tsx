@@ -41,10 +41,10 @@ export default function AccountSettings() {
           return;
         }
 
-        setAccount(json.data as any);
-        if (json.data) {
-          setDisplayName(json.data.display_name || '');
-          setAvatarUrl(json.data.avatar_url || '');
+        setAccount(json as any);
+        if (json) {
+          setDisplayName(json.display_name || '');
+          setAvatarUrl(json.avatar_url || '');
         }
         setLoading(false);
       } catch (err: any) {
@@ -79,8 +79,8 @@ export default function AccountSettings() {
       const result = await res.json();
       setAccount(prev => prev ? {
         ...prev,
-        display_name: result.data.display_name,
-        avatar_url: result.data.avatar_url,
+        display_name: result.display_name,
+        avatar_url: result.avatar_url,
       } : prev);
 
       setSuccess('Profile updated successfully');

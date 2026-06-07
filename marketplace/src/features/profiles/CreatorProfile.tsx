@@ -17,6 +17,9 @@ const C = {
 };
 
 interface CreatorProfileData {
+  // Account
+  email?: string;
+
   // Identity
   display_name: string;
   username: string;
@@ -106,8 +109,19 @@ export default function CreatorProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Check if user has ValueSkins or is a brand
+  const hasValueSkins = account?.modules?.some(m => m.code === 'valueskin' && m.is_active) || false;
+  const isBrand = account?.modules?.some(m => m.code === 'brand' && m.is_active) || false;
+  const showMarketplaceSettings = hasValueSkins || isBrand;
+
   useEffect(() => {
     if (account) {
+      // Initialize with account email and name
+      setProfile(prev => ({
+        ...prev,
+        email: account.email || undefined,
+        display_name: account.display_name || prev.display_name
+      }));
       fetchProfile();
     }
   }, [account]);
@@ -209,6 +223,12 @@ export default function CreatorProfile() {
           </div>
         </div>
 
+        {/* Email (Account) */}
+        <div style={{ padding: '16px', background: C.bg, borderRadius: '8px', border: `1px solid ${C.border}`, marginBottom: '20px' }}>
+          <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px', textTransform: 'uppercase' }}>Email</div>
+          <div style={{ fontSize: '16px', fontWeight: 600 }}>{profile.email || 'Not set'}</div>
+        </div>
+
         {/* Identity Section */}
         <Section title="Identity" isOpen={editing === 'identity'} onToggle={() => setEditing(editing === 'identity' ? null : 'identity')}>
           {editing !== 'identity' ? (
@@ -221,15 +241,18 @@ export default function CreatorProfile() {
                 <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px', textTransform: 'uppercase' }}>Username</div>
                 <div style={{ fontSize: '16px', fontWeight: 600 }}>@{profile.username || 'Not set'}</div>
               </div>
-              <div>
-                <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px', textTransform: 'uppercase' }}>Niche</div>
-                <div style={{ fontSize: '16px', fontWeight: 600 }}>{profile.niche || 'Not specified'}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px', textTransform: 'uppercase' }}>Location</div>
-                <div style={{ fontSize: '16px', fontWeight: 600 }}>{profile.location ? `${profile.location}, ${profile.country}` : 'Not set'}</div>
-              </div>
-            </div>
+              {showMarketplaceSettings && (
+                <>
+                  <div>
+                    <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px', textTransform: 'uppercase' }}>Niche</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600 }}>{profile.niche || 'Not specified'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: C.textMuted, marginBottom: '4px', textTransform: 'uppercase' }}>Location</div>
+                    <div style={{ fontSize: '16px', fontWeight: 600 }}>{profile.location ? `${profile.location}, ${profile.country}` : 'Not set'}</div>
+                  </div>
+                </>
+              )}
           ) : (
             <form style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
               <InputField label="Display Name" value={profile.display_name} onChange={v => setProfile({ ...profile, display_name: v })} />
@@ -251,7 +274,8 @@ export default function CreatorProfile() {
           )}
         </Section>
 
-        {/* Social Capital */}
+        {/* Social Capital — only for creators/brands with ValueSkins */}
+        {showMarketplaceSettings && (
         <Section title="Social Capital" isOpen={editing === 'social'} onToggle={() => setEditing(editing === 'social' ? null : 'social')}>
           {editing !== 'social' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
@@ -275,8 +299,10 @@ export default function CreatorProfile() {
             </form>
           )}
         </Section>
+        )}
 
-        {/* Pitch Section */}
+        {/* Pitch Section — only for creators/brands with ValueSkins */}
+        {showMarketplaceSettings && (
         <Section title="Pitch Link & Text" isOpen={editing === 'pitch'} onToggle={() => setEditing(editing === 'pitch' ? null : 'pitch')}>
           {editing !== 'pitch' ? (
             <div>
@@ -325,8 +351,10 @@ export default function CreatorProfile() {
             </form>
           )}
         </Section>
+        )}
 
-        {/* Reputation Section (read-only) */}
+        {/* Reputation Section (read-only) — only for creators/brands with ValueSkins */}
+        {showMarketplaceSettings && (
         <Section title="Reputation & Trust" isOpen={editing === 'reputation'} onToggle={() => setEditing(editing === 'reputation' ? null : 'reputation')} canEdit={false}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
             <StatBox label="Trust Score" value={`${profile.trust_score}%`} color={profile.trust_score >= 75 ? C.success : C.warning} />
@@ -335,8 +363,10 @@ export default function CreatorProfile() {
             <StatBox label="Average Rating" value={`${profile.avg_rating}/5`} color={C.warning} />
           </div>
         </Section>
+        )}
 
-        {/* Marketplace Section */}
+        {/* Marketplace Section — only for creators/brands with ValueSkins */}
+        {showMarketplaceSettings && (
         <Section title="Marketplace & Availability" isOpen={editing === 'marketplace'} onToggle={() => setEditing(editing === 'marketplace' ? null : 'marketplace')}>
           {editing !== 'marketplace' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -404,6 +434,7 @@ export default function CreatorProfile() {
             </form>
           )}
         </Section>
+        )}
       </div>
     </div>
   );
