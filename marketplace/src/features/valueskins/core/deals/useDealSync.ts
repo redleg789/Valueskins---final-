@@ -175,6 +175,7 @@ export type Campaign = {
   description: string;
   about?: string;
   requiredProfessions: string[];
+  requiredValueskin?: string;
   minLevel: number;
   maxLevel: number;
   budget: string;

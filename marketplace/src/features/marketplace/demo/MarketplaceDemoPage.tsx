@@ -176,6 +176,18 @@ export default function MarketplaceDemoPage() {
   const isBrand = userRole === 'brand';
   const isCreator = userRole === 'creator';
   const roleNotSet = !userRole;
+  // Per-user localStorage keys — prevents XP/skin data bleeding between accounts
+  const uid = account?.id ?? 'anon';
+  const SK = {
+    valueSkins:   `vs_demo_value_skins_${uid}`,
+    persist:      `vs_demo_persist_${uid}`,
+    hiddenSkins:  `vs_demo_hidden_skins_${uid}`,
+    version:      `vs_demo_version_${uid}`,
+    dealSync:     `vs_demo_deal_sync_${uid}`,
+    negCreator:   `vs_brand_negotiating_creator_${uid}`,
+    campaigns:    `vs_demo_campaigns_${uid}`,
+    applications: `vs_demo_applications_${uid}`,
+  };
   const [activeView, setActiveView] = useState<'profile' | 'mim' | 'store' | 'admin' | 'messages' | 'settings' | 'explore' | 'notifications' | 'events'>(() => {
 
 
@@ -310,7 +322,7 @@ export default function MarketplaceDemoPage() {
   // Restore valueSkins from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('vs_demo_value_skins');
+      const stored = localStorage.getItem(SK.valueSkins);
       if (stored) setValueSkins(JSON.parse(stored));
     } catch (e) { /* ignore corrupted data */ }
     setSkinsLoaded(true);
@@ -320,7 +332,7 @@ export default function MarketplaceDemoPage() {
   useEffect(() => {
     if (!skinsLoaded) return;
     try {
-      localStorage.setItem('vs_demo_value_skins', JSON.stringify(valueSkins));
+      localStorage.setItem(SK.valueSkins, JSON.stringify(valueSkins));
     } catch (e) { /* quota exceeded — safe to ignore */ }
   }, [valueSkins, skinsLoaded]);
 
@@ -344,7 +356,7 @@ export default function MarketplaceDemoPage() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('vs_demo_hidden_skins');
+      const stored = localStorage.getItem(SK.hiddenSkins);
       if (stored) setHiddenSkins(new Set(JSON.parse(stored)));
     } catch (e) { /* ignore */ }
     setHiddenLoaded(true);
@@ -353,14 +365,14 @@ export default function MarketplaceDemoPage() {
   useEffect(() => {
     if (!hiddenLoaded) return;
     try {
-      localStorage.setItem('vs_demo_hidden_skins', JSON.stringify([...hiddenSkins]));
+      localStorage.setItem(SK.hiddenSkins, JSON.stringify([...hiddenSkins]));
     } catch (e) { /* ignore */ }
   }, [hiddenSkins, hiddenLoaded]);
 
   // ── Persist key states to localStorage ───────────────────────
   useEffect(() => {
     try {
-      const s = localStorage.getItem('vs_demo_persist');
+      const s = localStorage.getItem(SK.persist);
       if (s) {
         const d = JSON.parse(s);
         if (d.marketplaceRole) setMarketplaceRole(d.marketplaceRole);
@@ -492,12 +504,12 @@ export default function MarketplaceDemoPage() {
   useEffect(() => {
     const VERSION = 'v2';
     if (typeof window === 'undefined') return;
-    if (localStorage.getItem('vs_demo_version') !== VERSION) {
-      localStorage.removeItem('vs_demo_value_skins');
-      localStorage.removeItem('vs_demo_persist');
-      localStorage.removeItem('vs_demo_deal_sync');
-      localStorage.removeItem('vs_demo_hidden_skins');
-      localStorage.setItem('vs_demo_version', VERSION);
+    if (localStorage.getItem(SK.version) !== VERSION) {
+      localStorage.removeItem(SK.valueSkins);
+      localStorage.removeItem(SK.persist);
+      localStorage.removeItem(SK.dealSync);
+      localStorage.removeItem(SK.hiddenSkins);
+      localStorage.setItem(SK.version, VERSION);
       setValueSkins({});
       setMarketplaceRole('none');
       setBrandValueSkins([]);
@@ -552,10 +564,10 @@ export default function MarketplaceDemoPage() {
   const [negotiatingOpp, setNegotiatingOpp] = useState<number | null>(null);
   const [negotiatingCreator, setNegotiatingCreatorRaw] = useState<number | null>(() => {
     if (typeof window === 'undefined') return null;
-    const v = localStorage.getItem('vs_brand_negotiating_creator');
+    const v = localStorage.getItem(SK.negCreator);
     return v !== null ? parseInt(v) : null;
   });
-  const setNegotiatingCreator = (v: number | null) => { setNegotiatingCreatorRaw(v); if (v === null) localStorage.removeItem('vs_brand_negotiating_creator'); else localStorage.setItem('vs_brand_negotiating_creator', String(v)); };
+  const setNegotiatingCreator = (v: number | null) => { setNegotiatingCreatorRaw(v); if (v === null) localStorage.removeItem(SK.negCreator); else localStorage.setItem(SK.negCreator, String(v)); };
 
   const [brandCurrentOppIndex, setBrandCurrentOppIndex] = useState(0);
 
@@ -1275,13 +1287,13 @@ export default function MarketplaceDemoPage() {
     setTimeout(() => setPurchaseToast(null), 2500);
     if (typeof window !== 'undefined') {
       const keys = [
-        'vs_demo_persist',
-        'vs_demo_deal_sync',
-        'vs_demo_value_skins',
-        'vs_demo_hidden_skins',
-        'vs_demo_campaigns',
-        'vs_demo_applications',
-        'vs_brand_negotiating_creator',
+        SK.persist,
+        SK.dealSync,
+        SK.valueSkins,
+        SK.hiddenSkins,
+        SK.campaigns,
+        SK.applications,
+        SK.negCreator,
       ];
       keys.forEach(k => localStorage.removeItem(k));
       // Reload to guarantee every derived state starts fresh for pitch flow.
@@ -1403,7 +1415,7 @@ export default function MarketplaceDemoPage() {
   useEffect(() => {
     if (!skinsLoaded) return;
     try {
-      localStorage.setItem('vs_demo_persist', JSON.stringify({
+      localStorage.setItem(SK.persist, JSON.stringify({
         marketplaceRole, brandValueSkins, activeBrandSkin, profileName, profileBio, profileAvatar,
         selectedCountry, selectedLanguages, rateCard, profileDealTypes, willingToBarter,
         notifications, joinedCommunities, dmMessages, communityMessages,
@@ -8396,7 +8408,7 @@ export default function MarketplaceDemoPage() {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {Object.entries(previewCreator.rateCard).map(([fmt, price]) => (
                       <div key={fmt} style={{ flex: 1, textAlign: 'center', padding: '8px', background: C.surfaceAlt, borderRadius: '8px' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: C.text }}>{price}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: C.text }}>{price as string}</div>
                         <div style={{ fontSize: '10px', color: C.textMuted, textTransform: 'capitalize' }}>{fmt}</div>
                       </div>
                     ))}
