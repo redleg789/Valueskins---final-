@@ -253,6 +253,7 @@ export default function CreatorProfile() {
                   </div>
                 </>
               )}
+            </div>
           ) : (
             <form style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
               <InputField label="Display Name" value={profile.display_name} onChange={v => setProfile({ ...profile, display_name: v })} />
